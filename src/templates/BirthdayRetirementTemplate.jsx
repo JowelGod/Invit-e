@@ -91,7 +91,7 @@ export default function BirthdayRetirementTemplate({ eventData, guests = [], isP
       {/* Confirmación */}
       <div className="mt-5 text-center text-green-400 from-neutral-200">
         <p className="text-2xl italic font-marker">Si jalas confirma... y si zafas también</p>
-        <p className="text-sm font-sans text-green-300">Envia tu respuesta por este medio (Importante para la logística)</p>
+        <p className="text-sm font-sans text-green-300">Envia tu respuesta lo antes posible (Muy importante para la logística)</p>
       </div>
 
       {responded ? (
@@ -301,13 +301,12 @@ export default function BirthdayRetirementTemplate({ eventData, guests = [], isP
           <p className="text-pink-400 font-bold">Mesa de regalos:</p>
           <ul className="list-disc list-inside">
             <li>PH / Liverpool / La Europea</li>
-            <li>San Pablo / Chedraui</li>
-            <li>Amazon / Home Depot</li>
+            <li>San Pablo / Home Depot</li>
             <li>Efectivo / Abrazos</li>
           </ul>
         </div>
         <div>
-          <p className="text-white font-bold">🎟️ Boleto exclusivo para:</p>
+          <p className="text-white font-bold">🎟️ Boleto personal y exclusivo para:</p>
           {allGuestsStructured.map((guestGroup, i) => (
             <div key={`ticket-${i}`} className="ml-2 mb-1">
               {/* Invitado principal */}
@@ -343,16 +342,16 @@ export default function BirthdayRetirementTemplate({ eventData, guests = [], isP
       </div>
 
       {/* Contacto y código de vestimenta */}
-      <div className="flex flex-col sm:flex-row justify-between mt-6 text-sm bg-yellow-100 text-black p-4 rounded">
-        <div>
-          <p>Informes y Quejas:</p>
+      <div className="bg-yellow-100 p-4 text-black rounded-md mt-6 flex flex-col sm:flex-row sm:justify-between sm:items-start">
+        <div className="sm:w-1/2">
+          <h3>Informes y Quejas:</h3>
           {hosts.map((host, i) => (
-            <p key={i}>📞 {host.contactInfo?.phone} {host.name}</p>
+            <small key={i}> {host.name} <br />📞 {host.contactInfo?.phone} <br /> 📧 {host.contactInfo.email}<br /></small>
           ))}
         </div>
-        <div className="relative z-10 text-right text-orange-500 font-bold uppercase text-xs">
+        <div className="relative z-10 text-sm text-left mt-6 text-orange-500 font-bold uppercase truncate">
           Vestimenta: Casual / Informal<br />
-          No pants, no pijama, no jeans rotos
+          👉🏽No pants<br /> 👉🏽no pijama<br /> 👉🏽no jeans rotos
         </div>
       </div>
     </div>

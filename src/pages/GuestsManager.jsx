@@ -215,7 +215,7 @@ const calculateTotalTickets = () => {
             <input
               type="number"
               inputMode="numeric"
-              pattern="[0-9]*"
+              pattern="^55\d{8}$"
               value={contactInfo.phone}
               onChange={(e) =>
                 setContactInfo((prev) => ({ ...prev, phone: e.target.value }))

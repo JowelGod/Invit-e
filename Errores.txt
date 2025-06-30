@@ -1,0 +1,2 @@
+EventForm no sirven inputs de email y telefono del Host
+validar en plantilla que direccion se manda y hacer un ap.list para desplegar 1 o las 2 direcciones depende de cual se introduzca
