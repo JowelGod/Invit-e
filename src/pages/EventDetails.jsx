@@ -15,7 +15,10 @@ export default function EventDetails() {
   const [confirmedCount, setConfirmedCount] = useState(0);
   const [rejectedCount, setRejectedCount] = useState(0);
   const [pendingCount, setPendingCount] = useState(0);
- 
+  const [filteredGuests, setFilteredGuests] = useState([]);
+  const [filterType, setFilterType] = useState(null); // 'confirmed', 'rejected', 'pending'
+  const [allGuests, setAllGuests] = useState([]);
+
 
   useEffect(() => {
     const q = query(collection(db, "guests"), where("eventId", "==", id));
@@ -29,6 +32,7 @@ export default function EventDetails() {
       setConfirmedCount(confirmed);
       setRejectedCount(rejected);
       setPendingCount(pending);
+      setAllGuests(guestsData);
     });
     return () => unsubscribe(); // Limpiar el listener
   }, [id]);
@@ -57,6 +61,38 @@ export default function EventDetails() {
       }
     }
   };
+
+  const handleFilterClick = (type) => {
+    setFilterType(type);
+    const filtered = allGuests.flatMap((g) => {
+      const result = [];
+      g.guests.forEach((guest) => {
+        const fullName = `${guest.firstName} ${guest.lastName}`;
+        if (type === "confirmed" && g.confirmedGuests?.includes(fullName)) result.push(fullName);
+        else if (type === "rejected" && g.rejectedGuests?.includes(fullName)) result.push(fullName);
+        else if (
+          type === "pending" &&
+          !g.confirmedGuests?.includes(fullName) &&
+          !g.rejectedGuests?.includes(fullName)
+        ) result.push(fullName);
+
+        // Extra guests
+        for (let i = 0; i < (guest.extraGuests || 0); i++) {
+          const extraName = `Invitado extra ${i + 1} (${fullName})`;
+          if (type === "confirmed" && g.confirmedGuests?.includes(extraName)) result.push(extraName);
+          else if (type === "rejected" && g.rejectedGuests?.includes(extraName)) result.push(extraName);
+          else if (
+            type === "pending" &&
+            !g.confirmedGuests?.includes(extraName) &&
+            !g.rejectedGuests?.includes(extraName)
+          ) result.push(extraName);
+        }
+      });
+      return result;
+    });
+    setFilteredGuests(filtered);
+  };
+
 
   if (loading) return <p className="text-center mt-10">Cargando evento...</p>;
   if (error) return <p className="text-center mt-10 text-red-500">{error}</p>;
@@ -109,20 +145,44 @@ export default function EventDetails() {
 
       {/* Visualización gráfica de conteos */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
-        <div className="bg-green-100 border-l-4 border-green-500 p-4 rounded shadow">
+        <button
+          onClick={() => handleFilterClick("confirmed")}
+          className="bg-green-100 border-l-4 border-green-500 p-4 rounded shadow w-full text-left"
+        >
           <p className="text-lg font-bold text-green-700">✅ Confirmados</p>
           <p className="text-2xl font-extrabold text-green-800">{confirmedCount}</p>
-        </div>
-        <div className="bg-red-100 border-l-4 border-red-500 p-4 rounded shadow">
+        </button>
+        <button
+          onClick={() => handleFilterClick("rejected")}
+          className="bg-red-100 border-l-4 border-red-500 p-4 rounded shadow w-full text-left"
+        >
           <p className="text-lg font-bold text-red-700">❌ Rechazados</p>
           <p className="text-2xl font-extrabold text-red-800">{rejectedCount}</p>
-        </div>
-        <div className="bg-yellow-100 border-l-4 border-yellow-500 p-4 rounded shadow">
+        </button>
+        <button
+          onClick={() => handleFilterClick("pending")}
+          className="bg-yellow-100 border-l-4 border-yellow-500 p-4 rounded shadow w-full text-left"
+        >
           <p className="text-lg font-bold text-yellow-700">⏳ Pendientes</p>
           <p className="text-2xl font-extrabold text-yellow-800">{pendingCount}</p>
-        </div>
+        </button>
       </div>
-
+      {filterType && (
+          <div className="mt-6 bg-white rounded shadow p-4">
+            <h3 className="text-lg font-bold mb-2">
+              Lista de invitados {filterType === 'confirmed' ? '✅ Confirmados' : filterType === 'rejected' ? '❌ Rechazados' : '⏳ Pendientes'}
+            </h3>
+            {filteredGuests.length > 0 ? (
+              <ul className="list-disc list-inside space-y-1">
+                {filteredGuests.map((name, index) => (
+                  <li key={index}>{name}</li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-gray-600">No hay invitados en esta categoría.</p>
+            )}
+          </div>
+        )}
       {/* Botones de acción */}
       <div className="flex flex-wrap gap-4 mt-10">
         <button

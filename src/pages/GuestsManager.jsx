@@ -28,6 +28,8 @@ export default function GuestsManager() {
   const [confirmedCount, setConfirmedCount] = useState(0);
 
   const [searchTerm, setSearchTerm] = useState("");
+  const [sortOrder, setSortOrder] = useState("recent"); // opciones: "recent", "oldest", "a-z", "z-a"
+
 
   // 🔹 Cargar evento y lista de invitados
   useEffect(() => {
@@ -164,254 +166,262 @@ const calculateTotalTickets = () => {
     return total - confirmed - rejected;
   };
 
-
+  const sortedGuests = [...existingGuests].sort((a, b) => {
+    if (sortOrder === "recent") return b.updatedAt?.seconds - a.updatedAt?.seconds;
+    if (sortOrder === "oldest") return a.updatedAt?.seconds - b.updatedAt?.seconds;
+    if (sortOrder === "a-z") return a.groupName?.localeCompare(b.groupName);
+    if (sortOrder === "z-a") return b.groupName?.localeCompare(a.groupName);
+    return 0;
+  });
 
   return (
-    <div className="flex flex-col md:flex-row gap-8 p-6 max-w-8xl mx-auto ">
-      <div className="mb-4">
+    <div className="px-4 md:px-6 max-w-7xl mx-auto">
+      <div className="mb-6 mt-4">
         <button
           onClick={() => navigate(`/evento/${eventId}`)}
           className="text-blue-600 hover:underline flex items-center"
         >
-          ← Volver a tu evento
+          ← Evento
         </button>
       </div>
-      {/* FORMULARIO */}
-      <div className="flex-1 bg-white shadow rounded p-6 border">
-        <h2 className="text-xl font-semibold mb-4">
-          {selectedGuestId ? "✏️ Editar grupo" : "➕ Nuevo grupo de invitados"}
-        </h2>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && <p className="text-red-600">{error}</p>}
-
-          <div>
-            <label className="block font-medium">Nombre del grupo:</label>
-            <input
-              type="text"
-              className="w-full border rounded px-3 py-2"
-              value={groupName}
-              placeholder="Ej. Familia González, Amigos del trabajo, Mauricio Ortega..."
-              onChange={(e) => setGroupName(e.target.value)}
-              required
-            />
-          </div>
-
-          <div className="mt-4">
-            <label className="block font-medium">📧 Correo:</label>
-            <input
-              type="email"
-              value={contactInfo.email}
-              onChange={(e) => 
-                setContactInfo((prev) => ({ ...prev, email: e.target.value }))
-              }
-              placeholder="correo@ejemplo.com"
-              className="w-full border rounded px-3 py-2"
-              pattern="^[^@\s]+@[^@\s]+\.[^@\s]+$"
-            />
-          </div>
-
-          <div className="mt-4">
-            <label className="block font-medium">📱 Celular:</label>
-            <input
-              type="number"
-              inputMode="numeric"
-              pattern="^55\d{8}$"
-              value={contactInfo.phone}
-              onChange={(e) =>
-                setContactInfo((prev) => ({ ...prev, phone: e.target.value }))
-              }
-              placeholder="5544332211"
-              className="w-full border rounded px-3 py-2"
-            />
-          </div>
-
-          <div className="mt-4">
-            <label className="block font-medium">🎟️ Boletos disponibles:</label>
-            <div className="text-gray-800 font-semibold">{calculateRemainingTickets()}</div>
-          </div>
-
-          {guests.map((guest, index) => (
-            <div key={index} className="flex items-center gap-2 mb-2">
-              <button
-                type="button"
-                onClick={() => handleRemoveGuest(index)}
-                className="col-span-1 text-red-500 text-xl font-bold"
-                title="Eliminar invitado"
-              >×🗑️</button>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+        {/* FORMULARIO */}
+        <div className="bg-white p-4 sm:p-6 rounded shadow border">
+          <h2 className="text-xl font-semibold mb-4">
+            {selectedGuestId ? "✏️ Editar grupo" : "➕ Nuevo grupo de invitados"}
+          </h2>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {error && <p className="text-red-600">{error}</p>}
+            <div>
+              <label className="block font-medium">Nombre del grupo:</label>
               <input
                 type="text"
-                placeholder="Nombre"
-                value={guest.firstName}
-                onChange={(e) => handleGuestChange(index, "firstName", e.target.value)}
-                className="p-2 border rounded w-1/4"
+                className="w-full border rounded px-3 py-2"
+                value={groupName}
+                placeholder="Ej. Familia González, Amigos del trabajo, Mauricio Ortega..."
+                onChange={(e) => setGroupName(e.target.value)}
                 required
               />
-              <input
-                type="text"
-                placeholder="Apellido(s)"
-                value={guest.lastName}
-                onChange={(e) => handleGuestChange(index, "lastName", e.target.value)}
-                className="p-2 border rounded w-1/4"
-                required
-              />
-              <div className="col.span-5">
-                <label className="px-3 block text-xs font-medium text-gray-600 mb-0.1">👥Invitados extras</label>
-                <div className="px-5 col-span-4 flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleExtraGuestsChange(index, -1)}
-                    className="px-2 bg-gray-200 rounded"
-                    disabled={guest.extraGuests <= 0}
-                  >−</button>
-                  <span className="min-w-[20px] text-center">{guest.extraGuests || 0}</span>
-                  <button
-                    type="button"
-                    onClick={() => handleExtraGuestsChange(index, 1)}
-                    disabled={calculateRemainingTickets() <= 0}
-                    className="px-2 bg-gray-200 rounded"
-                  >+</button>
-                </div>
-              </div>
             </div>
-          ))}
-          <div className="flex justify-between items-center mt-3">
-            <button
-              type="button"
-              onClick={() => setGuests([...guests, { firstName: "", lastName: "" }])}
-              disabled={calculateRemainingTickets() <= 0}
-              className="text-blue-600 hover:underline"
-            >
-              + Agregar otro invitado
-            </button>
-            <p className="text-sm text-gray-500">🎫 Boletos usados: {calculateTotalTickets()}</p>
-          </div>
-          <div className="flex gap-4">
-            <button
-              type="submit"
-              className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
-              disabled={loading}
-            >
-              {selectedGuestId ? "Actualizar" : "Guardar"}
-            </button>
-            {selectedGuestId && (
-              <button
-                type="button"
-                onClick={resetForm}
-                className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400"
-              >
-                Cancelar
-              </button>
-            )}
-          </div>
-        </form>
-      </div>
-
-      {/* LISTA */}
-      <div className="flex-1">
-        <h2 className="text-xl font-semibold mb-4">📋 Invitados registrados</h2>
-        <div className="space-y-4">
-          <div className="mb-4">
-            <input
-              type="text"
-              placeholder="🔎 Buscar por nombre del grupo o invitados..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value.toLowerCase())}
-              className="w-full px-3 py-2 border rounded"
-            />
-          </div>
-          {existingGuests
-            .filter((group) => {
-              const groupName = group.groupName?.toLowerCase() || "";
-              const guestsStr = group.guests?.map(g => `${g.firstName} ${g.lastName}`.toLowerCase()).join(" ") || "";
-              return groupName.includes(searchTerm) || guestsStr.includes(searchTerm);
-            })
-            .map((group) => (
-            <div key={group.id} className="border rounded p-4 bg-white shadow-sm">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-bold">{group.groupName}</h3>
-                <div className="text-sm text-gray-500">
-                  {group.contactInfo.email && <span>📧 {group.contactInfo.email} </span>}
-                  {group.contactInfo.phone && <span>📱 {group.contactInfo.phone}</span>}
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleEdit(group)}
-                    className="text-blue-600 hover:underline"
-                  >
-                    Editar
-                  </button>
-                  <button
-                    onClick={() => handleDelete(group.id)}
-                    className="text-red-600 hover:underline"
-                  >
-                    Eliminar
-                  </button>
-                </div>
-              </div>
-              <p className="text-sm text-gray-600">
-                🎟️ {group.ticketCount} boletos | ✅ {group.confirmedCount} | ❌ {group.rejectedCount} | ⏳ {calculatePendingCount(group)}
-              </p>
-              <ul className="text-sm mt-2 space-y-1 pl-2">
-                {group.guests.map((g, i) => {
-                  const fullName = `${g.firstName} ${g.lastName}`;
-                  const isConfirmed = group.confirmedGuests?.includes(fullName);
-                  const isRejected = group.rejectedGuests?.includes(fullName);
-
-                  return (
-                    <li key={i}>
-                      <span
-                        className={`font-medium ${isConfirmed ? 'text-green-600' : isRejected ? 'text-red-600' : 'text-gray-800'}`}
-                      >
-                        {fullName}
-                      </span>
-
-                      {/* Invitados extra */}
-                      {Array.from({ length: g.extraGuests || 0 }).map((_, j) => {
-                        const extraName = `Invitado extra ${j + 1} (${fullName})`;
-                        const extraConfirmed = group.confirmedGuests?.includes(extraName);
-                        const extraRejected = group.rejectedGuests?.includes(extraName);
-
-                        return (
-                          <div key={j} className="pl-4 flex items-center gap-1">
-                            <span className="text-sm">↳</span>
-                            <span
-                              className={`text-sm ${extraConfirmed ? 'text-green-600' : extraRejected ? 'text-red-600' : 'text-gray-600'}`}
-                            >
-                              {extraName}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </li>
-                  );
-                })}
-              </ul>
-
-              {/* 🔗 Link personalizado de invitación */}
-              <div className="mt-2 flex items-center gap-2">
-                <a
-                  href={`${window.location.origin}/invitacion/${group.id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-blue-600 underline break-all"
-                >
-                  {`${window.location.origin}/invitacion/${group.id}`}
-                </a>
+            <div className="mt-4">
+              <label className="block font-medium">📧 Correo:</label>
+              <input
+                type="email"
+                value={contactInfo.email}
+                onChange={(e) => 
+                  setContactInfo((prev) => ({ ...prev, email: e.target.value }))
+                }
+                placeholder="correo@ejemplo.com"
+                className="w-full border rounded px-3 py-2"
+                pattern="^[^@\s]+@[^@\s]+\.[^@\s]+$"
+              />
+            </div>
+            <div className="mt-4">
+              <label className="block font-medium">📱 Celular:</label>
+              <input
+                type="number"
+                inputMode="numeric"
+                pattern="^55\d{8}$"
+                value={contactInfo.phone}
+                onChange={(e) =>
+                  setContactInfo((prev) => ({ ...prev, phone: e.target.value }))
+                }
+                placeholder="5544332211"
+                className="w-full border rounded px-3 py-2"
+              />
+            </div>
+            <div className="mt-4">
+              <label className="block font-medium">🎟️ Boletos disponibles:</label>
+              <div className="text-gray-800 font-semibold">{calculateRemainingTickets()}</div>
+            </div>
+            {guests.map((guest, index) => (
+              <div key={index} className="flex items-center gap-2 mb-2">
                 <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(`${window.location.origin}/invitacion/${group.id}`);
-                    }}
-                    className="text-xs text-gray-500 hover:text-gray-900 px-2 py-1 border border-gray-300 rounded"
-                  >
-                    Copiar
-                  </button>
+                  type="button"
+                  onClick={() => handleRemoveGuest(index)}
+                  className="col-span-1 text-red-500 text-xl font-bold"
+                  title="Eliminar invitado"
+                >×🗑️</button>
+                <input
+                  type="text"
+                  placeholder="Nombre"
+                  value={guest.firstName}
+                  onChange={(e) => handleGuestChange(index, "firstName", e.target.value)}
+                  className="p-2 border rounded w-1/4"
+                  required
+                />
+                <input
+                  type="text"
+                  placeholder="Apellido(s)"
+                  value={guest.lastName}
+                  onChange={(e) => handleGuestChange(index, "lastName", e.target.value)}
+                  className="p-2 border rounded w-1/4"
+                  required
+                />
+                <div className="col.span-5">
+                  <label className="px-3 block text-xs font-medium text-gray-600 mb-0.1">👥Invitados extras</label>
+                  <div className="px-5 col-span-4 flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => handleExtraGuestsChange(index, -1)}
+                      className="px-2 bg-gray-200 rounded"
+                      disabled={guest.extraGuests <= 0}
+                    >−</button>
+                    <span className="min-w-[20px] text-center">{guest.extraGuests || 0}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleExtraGuestsChange(index, 1)}
+                      disabled={calculateRemainingTickets() <= 0}
+                      className="px-2 bg-gray-200 rounded"
+                    >+</button>
+                  </div>
+                </div>
               </div>
-              <p className="text-xs text-gray-400">🆔 ID: {group.id}</p>
+            ))}
+            <div className="flex justify-between items-center mt-3">
+              <button
+                type="button"
+                onClick={() => setGuests([...guests, { firstName: "", lastName: "" }])}
+                disabled={calculateRemainingTickets() <= 0}
+                className="text-blue-600 hover:underline"
+              >
+                + Agregar otro invitado
+              </button>
+              <p className="text-sm text-gray-500">🎫 Boletos usados: {calculateTotalTickets()}</p>
             </div>
-          ))}
+            <div className="flex gap-4">
+              <button
+                type="submit"
+                className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700"
+                disabled={loading}
+              >
+                {selectedGuestId ? "Actualizar" : "Guardar"}
+              </button>
+              {selectedGuestId && (
+                <button
+                  type="button"
+                  onClick={resetForm}
+                  className="bg-gray-300 px-4 py-2 rounded hover:bg-gray-400"
+                >
+                  Cancelar
+                </button>
+              )}
+            </div>
+          </form>
         </div>
-      </div>
+        {/* LISTA */}
+        <div className="p-0">
+          <h2 className="text-xl font-semibold mb-4">📋 Invitados registrados</h2>
+          <div className="space-y-4">
+            <div className="flex flex-col md:flex-row justify-between gap-4 mb-4">
+              <input
+                type="text"
+                placeholder="🔎 Buscar por nombre del grupo o invitados..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value.toLowerCase())}
+                className="w-full px-3 py-2 border rounded"
+              />
+              <small>Ordenar por:</small>
+              <select
+                value={sortOrder}
+                onChange={(e) => setSortOrder(e.target.value)}
+                className="w-full md:w-1/4 px-3 py-2 border rounded text-sm"
+              >
+                <option value="recent">Más reciente</option>
+                <option value="oldest">Más antiguo</option>
+                <option value="a-z">A-Z</option>
+                <option value="z-a">Z-A</option>
+              </select>
+            </div>
+            {sortedGuests
+              .filter((group) => {
+                const groupName = group.groupName?.toLowerCase() || "";
+                const guestsStr = group.guests?.map(g => `${g.firstName} ${g.lastName}`.toLowerCase()).join(" ") || "";
+                return groupName.includes(searchTerm) || guestsStr.includes(searchTerm);
+              })
+              .map((group) => (
+              <div key={group.id} className="border rounded p-4 bg-white shadow-sm">
+                <div className="flex justify-between items-center">
+                  <h3 className="text-lg font-bold">{group.groupName}</h3>
+                  <div className="text-sm text-gray-500">
+                    {group.contactInfo.email && <span>📧 {group.contactInfo.email} </span>}
+                    {group.contactInfo.phone && <span>📱 {group.contactInfo.phone}</span>}
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleEdit(group)}
+                      className="text-blue-600 hover:underline"
+                    >
+                      Editar
+                    </button>
+                    <button
+                      onClick={() => handleDelete(group.id)}
+                      className="text-red-600 hover:underline"
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600">
+                  🎟️ {group.ticketCount} boletos | ✅ {group.confirmedCount} | ❌ {group.rejectedCount} | ⏳ {calculatePendingCount(group)}
+                </p>
+                <ul className="text-sm mt-2 space-y-1 pl-2">
+                  {group.guests.map((g, i) => {
+                    const fullName = `${g.firstName} ${g.lastName}`;
+                    const isConfirmed = group.confirmedGuests?.includes(fullName);
+                    const isRejected = group.rejectedGuests?.includes(fullName);
+                    return (
+                      <li key={i}>
+                        <span
+                          className={`font-medium ${isConfirmed ? 'text-green-600' : isRejected ? 'text-red-600' : 'text-gray-800'}`}
+                        >
+                          {fullName}
+                        </span>
+                        {/* Invitados extra */}
+                        {Array.from({ length: g.extraGuests || 0 }).map((_, j) => {
+                          const extraName = `Invitado extra ${j + 1} (${fullName})`;
+                          const extraConfirmed = group.confirmedGuests?.includes(extraName);
+                          const extraRejected = group.rejectedGuests?.includes(extraName);
+                          return (
+                            <div key={j} className="pl-4 flex items-center gap-1">
+                              <span className="text-sm">↳</span>
+                              <span
+                                className={`text-sm ${extraConfirmed ? 'text-green-600' : extraRejected ? 'text-red-600' : 'text-gray-600'}`}
+                              >
+                                {extraName}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </li>
+                    );
+                  })}
+                </ul>
+                {/* 🔗 Link personalizado de invitación */}
+                <div className="mt-2 flex items-center gap-2">
+                  <a
+                    href={`${window.location.origin}/invitacion/${group.id}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-blue-600 underline break-all"
+                  >
+                    {`${window.location.origin}/invitacion/${group.id}`}
+                  </a>
+                  <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(`${window.location.origin}/invitacion/${group.id}`);
+                      }}
+                      className="text-xs text-gray-500 hover:text-gray-900 px-2 py-1 border border-gray-300 rounded"
+                    >
+                      Copiar
+                    </button>
+                </div>
+                <p className="text-xs text-gray-400">🆔 ID: {group.id}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>  
     </div>
   );
 }
