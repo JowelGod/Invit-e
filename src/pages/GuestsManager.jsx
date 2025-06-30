@@ -27,6 +27,7 @@ export default function GuestsManager() {
   const [rejectedCount, setRejectedCount] = useState(0);
   const [confirmedCount, setConfirmedCount] = useState(0);
 
+  const [searchTerm, setSearchTerm] = useState("");
 
   // 🔹 Cargar evento y lista de invitados
   useEffect(() => {
@@ -310,7 +311,22 @@ const calculateTotalTickets = () => {
       <div className="flex-1">
         <h2 className="text-xl font-semibold mb-4">📋 Invitados registrados</h2>
         <div className="space-y-4">
-          {existingGuests.map((group) => (
+          <div className="mb-4">
+            <input
+              type="text"
+              placeholder="🔎 Buscar por nombre del grupo o invitados..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value.toLowerCase())}
+              className="w-full px-3 py-2 border rounded"
+            />
+          </div>
+          {existingGuests
+            .filter((group) => {
+              const groupName = group.groupName?.toLowerCase() || "";
+              const guestsStr = group.guests?.map(g => `${g.firstName} ${g.lastName}`.toLowerCase()).join(" ") || "";
+              return groupName.includes(searchTerm) || guestsStr.includes(searchTerm);
+            })
+            .map((group) => (
             <div key={group.id} className="border rounded p-4 bg-white shadow-sm">
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-bold">{group.groupName}</h3>
@@ -391,6 +407,7 @@ const calculateTotalTickets = () => {
                     Copiar
                   </button>
               </div>
+              <p className="text-xs text-gray-400">🆔 ID: {group.id}</p>
             </div>
           ))}
         </div>
