@@ -352,7 +352,7 @@ const calculateTotalTickets = () => {
 
                       {/* Invitados extra */}
                       {Array.from({ length: g.extraGuests || 0 }).map((_, j) => {
-                        const extraName = `Invitado extra ${j + 1}`;
+                        const extraName = `Invitado extra ${j + 1} (${fullName})`;
                         const extraConfirmed = group.confirmedGuests?.includes(extraName);
                         const extraRejected = group.rejectedGuests?.includes(extraName);
 
