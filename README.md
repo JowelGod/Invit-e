@@ -1,12 +1,61 @@
-# React + Vite
+# Invitame
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Fundamentos del nuevo Invitame: React + Vite en el cliente y Supabase para PostgreSQL, Auth,
+Storage, Realtime y RPC. El prototipo Firebase permanece intacto en `master` y en el tag
+`eventide-prototype-2025-06-30`.
 
-Currently, two official plugins are available:
+## Requisitos
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- Node.js 22 o posterior y pnpm 11.
+- Docker Desktop en ejecución (necesario para Supabase local y las pruebas RLS).
+- Supabase CLI, instalada como dependencia de desarrollo.
 
-## Expanding the ESLint configuration
+## Puesta en marcha local
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```bash
+pnpm install --frozen-lockfile
+pnpm supabase:start
+pnpm exec supabase status -o env
+```
+
+Copia `.env.example` a `.env.local`. Del resultado anterior usa `API_URL` como
+`VITE_SUPABASE_URL` y `ANON_KEY` como `VITE_SUPABASE_ANON_KEY`. Después ejecuta:
+
+```bash
+pnpm dev
+```
+
+- Aplicación: <http://localhost:5173>
+- Supabase Studio: <http://127.0.0.1:54323>
+- Bandeja de correo local: <http://127.0.0.1:54324>
+
+La primera ejecución aplica automáticamente las migraciones. Para reconstruir la base local:
+
+```bash
+pnpm supabase:reset
+```
+
+## Comprobaciones
+
+```bash
+pnpm format:check
+pnpm lint
+pnpm test
+pnpm build
+pnpm test:rls
+```
+
+`pnpm test:rls` exige que Supabase local esté iniciado. CI ejecuta todas las comprobaciones.
+
+## Flujo vertical comprobable
+
+1. Regístrate en `/registro` e inicia sesión.
+2. Crea un evento y define capacidad.
+3. Agrega un grupo con uno o varios lugares.
+4. Genera el enlace; se copia al portapapeles y sólo se muestra durante esa sesión de pantalla.
+5. Abre el enlace en una ventana privada, responde y vuelve al detalle del evento.
+6. Realtime actualiza los estados y los conteos derivados.
+
+Consulta [PRODUCT.md](./PRODUCT.md), [ARCHITECTURE.md](./ARCHITECTURE.md),
+[DESIGN.md](./DESIGN.md), [DECISIONS.md](./DECISIONS.md) y [ROADMAP.md](./ROADMAP.md).
+El cierre manual del servicio anterior está en [FIREBASE_SHUTDOWN.md](./FIREBASE_SHUTDOWN.md).

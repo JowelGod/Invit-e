@@ -1,0 +1,15 @@
+packages:
+  - .
+
+# OneDrive no conserva de forma fiable algunos enlaces del layout virtual en Windows.
+nodeLinker: hoisted
+packageImportMethod: copy
+confirmModulesPurge: false
+
+allowBuilds:
+  esbuild: true
+
+minimumReleaseAgeExclude:
+  - '@vitest/mocker@5.0.1'
+  - '@vitest/spy@5.0.1'
+  - vitest@5.0.1
