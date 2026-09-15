@@ -17,7 +17,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:rls": "supabase test db",
-    "check": "pnpm format:check && pnpm lint && pnpm test && pnpm build",
+    "check": "prettier --check . && eslint . --max-warnings=0 && vitest run && tsc -b && vite build",
     "supabase:start": "supabase start",
     "supabase:stop": "supabase stop",
     "supabase:reset": "supabase db reset"
