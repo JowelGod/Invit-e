@@ -1,0 +1,1 @@
+-- El MVP no incluye datos ficticios persistentes. Las pruebas crean fixtures aislados.
