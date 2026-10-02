@@ -65,6 +65,32 @@ evento nunca se leen de esta columna: siempre se derivan de `invitees`.
 suscribe a RSVP en `invitees` y vuelve a consultar datos sujetos a RLS; las mutaciones de agenda
 refrescan explícitamente. Realtime mejora frescura, pero PostgreSQL sigue siendo la autoridad.
 
+## Preparación para mapas
+
+El proveedor recomendado para una fase posterior es Google Maps Platform (Places API para
+autocompletado y Maps JavaScript API para la vista previa), porque el modelo ya conserva
+`place_id`, coordenadas y dirección sin hacer depender los datos del proveedor.
+
+- Variable futura de navegador: `VITE_GOOGLE_MAPS_BROWSER_KEY`. No se agrega todavía a
+  `.env.example` porque no existe integración activa.
+- La clave debe restringirse por HTTP referrer a los dominios exactos de desarrollo, staging y
+  producción, y permitir únicamente las APIs necesarias. Nunca debe ser una clave de servidor.
+- Deben configurarse cuotas y alertas de presupuesto antes de habilitar facturación. Places y
+  mapas son servicios por uso; el costo puede cambiar y una clave sin restricciones tiene riesgo
+  de abuso y consumo inesperado. También existe dependencia del formato y licencia del
+  proveedor.
+- El flujo posterior será: autocompletar lugar, persistir texto + `place_id` + coordenadas,
+  construir un enlace de navegación desde las coordenadas y cargar la vista previa sólo cuando
+  sea visible. La invitación seguirá funcionando con dirección textual si Maps falla o se retira.
+
+## Compatibilidad y backfill
+
+Las migraciones son aditivas. Para filas anteriores: `template_id` se vuelve `basic`; el contacto
+principal hereda el nombre del grupo; el cupo toma `max(cantidad de invitees, 1)`; todos los
+lugares se clasifican como `named_guest`; el orden se deriva de `created_at, id`; y los eventos
+publicados o archivados reciben timestamps a partir de `updated_at`. No se alteran tokens,
+hashes, respuestas ni eventos RSVP existentes.
+
 ## Entornos
 
 - Local completo: Supabase CLI + Docker, Vite y bandeja de correo local.
