@@ -42,7 +42,9 @@ Edge Function se añadirá sólo si rate limiting, webhooks o integraciones lo j
 **Estado:** aceptada. `assigned_capacity` es el cupo administrativo, pero cada lugar activo es
 una fila de `invitees`, incluso sin nombre. Aumentar cupo crea filas anónimas. Reducirlo sólo
 retira lógicamente lugares pendientes sin historial ni dependencias. Los conteos del evento se
-derivan de filas, nunca de contadores sincronizados manualmente.
+derivan de filas, nunca de contadores sincronizados manualmente. Un enlace activo no bloquea por
+sí solo una reducción segura: sigue apuntando al grupo y su payload refleja los lugares activos;
+una respuesta o historial sí bloquea el retiro del lugar afectado.
 
 ## ADR-009 — Acompañantes explícitos en el mismo grupo
 
