@@ -27,11 +27,27 @@ const invitation: PublicInvitation = {
     timezone: 'America/Mexico_City',
     location_name: 'Jardín Central',
     content: {},
+    template_id: 'basic',
+    schedule: [],
   },
   party: { name: 'Familia García' },
   places: [
-    { key: 'a0000000-0000-4000-8000-000000000001', name: 'Ana', status: 'pending' },
-    { key: 'a0000000-0000-4000-8000-000000000002', name: null, status: 'pending' },
+    {
+      key: 'a0000000-0000-4000-8000-000000000001',
+      name: 'Ana',
+      status: 'pending',
+      type: 'named_guest',
+      companion_label: null,
+      companion_of_key: null,
+    },
+    {
+      key: 'a0000000-0000-4000-8000-000000000002',
+      name: null,
+      status: 'pending',
+      type: 'named_guest',
+      companion_label: null,
+      companion_of_key: null,
+    },
   ],
 };
 

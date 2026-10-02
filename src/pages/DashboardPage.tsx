@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import { CapacityGrid } from '../components/CapacityGrid';
+import { formatDateTime } from '../lib/dates';
 import type { EventRecord } from '../lib/types';
 import { listEvents } from '../services/api';
 
@@ -57,11 +58,18 @@ export function DashboardPage() {
         {events.map((event) => (
           <article className="event-card" key={event.id}>
             <div>
-              <p className="eyebrow">{new Date(event.starts_at).toLocaleDateString('es-MX')}</p>
+              <p className="eyebrow">{formatDateTime(event.starts_at, event.timezone)}</p>
               <h2>
                 <Link to={`/app/eventos/${event.id}`}>{event.title}</Link>
               </h2>
-              <p>{event.location_name || 'Ubicación por definir'}</p>
+              <p>
+                {event.location_name || 'Ubicación por definir'} ·{' '}
+                {event.status === 'published'
+                  ? 'Publicado'
+                  : event.status === 'archived'
+                    ? 'Archivado'
+                    : 'Borrador'}
+              </p>
             </div>
             {event.summary && <CapacityGrid summary={event.summary} />}
           </article>

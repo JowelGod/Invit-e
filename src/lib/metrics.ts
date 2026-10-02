@@ -7,10 +7,13 @@ export function deriveCapacity(capacity: number, responses: InviteeStatus[]): Ca
 
   return {
     capacity,
+    assigned: responses.length,
     unassigned: Math.max(capacity - responses.length, 0),
     pending,
     confirmed,
     rejected,
     available_to_reassign: Math.max(capacity - pending - confirmed, 0),
+    response_percentage:
+      responses.length === 0 ? 0 : ((confirmed + rejected) * 100) / responses.length,
   };
 }

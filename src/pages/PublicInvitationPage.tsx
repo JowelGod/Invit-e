@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { useParams } from 'react-router-dom';
 
 import { FormMessage } from '../components/FormMessage';
+import { formatDateTime } from '../lib/dates';
 import type { InviteeStatus, PublicInvitation, RsvpResponse } from '../lib/types';
 import { getPublicInvitation, submitRsvp } from '../services/api';
 
@@ -101,16 +102,36 @@ export function PublicInvitationPage() {
         <h1>{invitation.party.name}</h1>
         <div className="invitation-event">
           <h2>{invitation.event.title}</h2>
-          <p>{new Date(invitation.event.starts_at).toLocaleString('es-MX')}</p>
+          <p>{formatDateTime(invitation.event.starts_at, invitation.event.timezone)}</p>
           {invitation.event.location_name && <p>{invitation.event.location_name}</p>}
         </div>
+        {(invitation.event.schedule || []).length > 0 && (
+          <section className="public-schedule" aria-labelledby="public-schedule-title">
+            <h2 id="public-schedule-title">Agenda</h2>
+            <ol>
+              {(invitation.event.schedule || []).map((item, index) => (
+                <li key={`${item.starts_at}-${item.title}-${index}`}>
+                  <h3>{item.title}</h3>
+                  <p>{formatDateTime(item.starts_at, invitation.event.timezone)}</p>
+                  {(item.venue_name || item.address) && (
+                    <p>{[item.venue_name, item.address].filter(Boolean).join(' · ')}</p>
+                  )}
+                  {item.description && <p>{item.description}</p>}
+                </li>
+              ))}
+            </ol>
+          </section>
+        )}
         <form onSubmit={(event) => void handleSubmit(event)}>
           <fieldset>
             <legend>Confirma cada lugar que quieras responder</legend>
             <div className="rsvp-list">
               {invitation.places.map((place, index) => (
                 <div className="rsvp-place" key={place.key}>
-                  <p>{place.name || `Lugar ${index + 1}`}</p>
+                  <p>
+                    {place.name || place.companion_label || `Lugar ${index + 1}`}
+                    {place.type === 'plus_one' && <small> · Acompañante</small>}
+                  </p>
                   <div className="segmented-control">
                     <label>
                       <input
