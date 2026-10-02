@@ -96,6 +96,10 @@ export function PartyCard({ party, disabled, onChanged, onError }: Props) {
   }
 
   const namedGuests = party.invitees.filter((invitee) => invitee.invitee_type === 'named_guest');
+  const responseCounts = party.invitees.reduce(
+    (counts, invitee) => ({ ...counts, [invitee.response]: counts[invitee.response] + 1 }),
+    { pending: 0, confirmed: 0, rejected: 0 },
+  );
 
   return (
     <details className="party-card">
@@ -103,7 +107,8 @@ export function PartyCard({ party, disabled, onChanged, onError }: Props) {
         <span>
           <strong>{party.name}</strong>
           <small>
-            {party.assigned_capacity} lugares · {party.primary_contact_name}
+            {party.assigned_capacity} lugares · {responseCounts.confirmed} confirmados ·{' '}
+            {responseCounts.rejected} rechazados · {responseCounts.pending} pendientes
           </small>
         </span>
       </summary>

@@ -96,6 +96,13 @@ export function EventDetailPage() {
       .split('\n')
       .map((name) => name.trim())
       .filter(Boolean);
+    const assignedCapacity = Number(form.get('places'));
+    if (names.length > assignedCapacity) {
+      setError(
+        `Hay ${names.length} nombres para ${assignedCapacity} lugares. Aumenta el cupo o retira nombres.`,
+      );
+      return;
+    }
     await run(
       () =>
         createGuestParty({
@@ -104,7 +111,7 @@ export function EventDetailPage() {
           primaryContactName: formText(form, 'primaryContactName'),
           contactEmail: formText(form, 'contactEmail'),
           contactPhone: formText(form, 'contactPhone'),
-          assignedCapacity: Number(form.get('places')),
+          assignedCapacity,
           inviteeNames: names,
         }),
       'Grupo agregado.',
