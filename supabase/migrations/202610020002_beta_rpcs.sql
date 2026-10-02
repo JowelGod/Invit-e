@@ -149,12 +149,12 @@ begin
     raise exception 'Hay más personas que lugares asignados' using errcode = '23514';
   end if;
   if exists (
-    select 1 from jsonb_array_elements(p_invitees) value
-    where jsonb_typeof(value) <> 'object'
+    select 1 from jsonb_array_elements(p_invitees) as invitee(value)
+    where jsonb_typeof(invitee.value) <> 'object'
   ) or exists (
     select 1
-    from jsonb_array_elements(p_invitees) value,
-      lateral jsonb_object_keys(value) field
+    from jsonb_array_elements(p_invitees) as invitee(value),
+      lateral jsonb_object_keys(invitee.value) field
     where field not in (
       'client_key', 'display_name', 'invitee_type',
       'companion_of_key', 'companion_label'
@@ -163,25 +163,25 @@ begin
     raise exception 'La lista de personas contiene campos no permitidos' using errcode = '22023';
   end if;
   if exists (
-    select 1 from jsonb_array_elements(p_invitees) value
-    where not (value ? 'client_key')
-      or (value ->> 'client_key') !~
+    select 1 from jsonb_array_elements(p_invitees) as invitee(value)
+    where not (invitee.value ? 'client_key')
+      or (invitee.value ->> 'client_key') !~
         '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'
-      or coalesce(value ->> 'invitee_type', 'named_guest') not in ('named_guest', 'plus_one')
+      or coalesce(invitee.value ->> 'invitee_type', 'named_guest') not in ('named_guest', 'plus_one')
   ) or (
-    select count(distinct value ->> 'client_key')
-    from jsonb_array_elements(p_invitees) value
+    select count(distinct invitee.value ->> 'client_key')
+    from jsonb_array_elements(p_invitees) as invitee(value)
   ) <> supplied_count then
     raise exception 'Cada persona necesita una clave temporal única' using errcode = '22023';
   end if;
   if exists (
     select 1
-    from jsonb_array_elements(p_invitees) value
-    where coalesce(value ->> 'invitee_type', 'named_guest') = 'plus_one'
+    from jsonb_array_elements(p_invitees) as invitee(value)
+    where coalesce(invitee.value ->> 'invitee_type', 'named_guest') = 'plus_one'
       and not exists (
-        select 1 from jsonb_array_elements(p_invitees) owner
-        where owner ->> 'client_key' = value ->> 'companion_of_key'
-          and coalesce(owner ->> 'invitee_type', 'named_guest') = 'named_guest'
+        select 1 from jsonb_array_elements(p_invitees) as owner(value)
+        where owner.value ->> 'client_key' = invitee.value ->> 'companion_of_key'
+          and coalesce(owner.value ->> 'invitee_type', 'named_guest') = 'named_guest'
       )
   ) then
     raise exception 'Cada acompañante debe pertenecer a una persona del mismo grupo' using errcode = '22023';
@@ -204,8 +204,8 @@ begin
   ) returning id into new_party_id;
 
   for item in
-    select value from jsonb_array_elements(p_invitees) value
-    where coalesce(value ->> 'invitee_type', 'named_guest') = 'named_guest'
+    select invitee.value from jsonb_array_elements(p_invitees) as invitee(value)
+    where coalesce(invitee.value ->> 'invitee_type', 'named_guest') = 'named_guest'
   loop
     insert into public.invitees(
       event_id, guest_party_id, public_key, display_name, invitee_type,
@@ -218,8 +218,8 @@ begin
   end loop;
 
   for item in
-    select value from jsonb_array_elements(p_invitees) value
-    where value ->> 'invitee_type' = 'plus_one'
+    select invitee.value from jsonb_array_elements(p_invitees) as invitee(value)
+    where invitee.value ->> 'invitee_type' = 'plus_one'
   loop
     select id into new_invitee_id
     from public.invitees
