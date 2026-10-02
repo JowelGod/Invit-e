@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(23);
+select plan(27);
 
 insert into auth.users (
   id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -20,7 +20,31 @@ insert into auth.users (
     'authenticated', 'authenticated', 'outsider@example.test',
     extensions.crypt('not-a-real-password', extensions.gen_salt('bf')),
     now(), '{"full_name":"Outsider"}', now(), now()
+  ),
+  (
+    '61000000-0000-4000-8000-000000000006',
+    '00000000-0000-0000-0000-000000000000',
+    'authenticated', 'authenticated', 'planner@example.test',
+    extensions.crypt('not-a-real-password', extensions.gen_salt('bf')),
+    now(), '{"full_name":"Planner"}', now(), now()
+  ),
+  (
+    '62000000-0000-4000-8000-000000000006',
+    '00000000-0000-0000-0000-000000000000',
+    'authenticated', 'authenticated', 'viewer@example.test',
+    extensions.crypt('not-a-real-password', extensions.gen_salt('bf')),
+    now(), '{"full_name":"Viewer"}', now(), now()
   );
+
+insert into public.organization_members(organization_id, user_id, role)
+select profile.default_organization_id, membership.user_id, membership.role
+from public.profiles profile
+cross join (
+  values
+    ('61000000-0000-4000-8000-000000000006'::uuid, 'planner'::public.app_role),
+    ('62000000-0000-4000-8000-000000000006'::uuid, 'viewer'::public.app_role)
+) membership(user_id, role)
+where profile.id = '50000000-0000-4000-8000-000000000005';
 
 create temp table beta_state (
   event_id uuid,
@@ -124,6 +148,34 @@ select is(
   (public.event_capacity_summary((select event_id from beta_state)) ->> 'response_percentage')::numeric,
   0::numeric,
   'el porcentaje de respuesta inicia en cero'
+);
+
+select set_config('request.jwt.claim.sub', '62000000-0000-4000-8000-000000000006', true);
+select is(
+  (select count(*)::integer from public.events), 1,
+  'viewer puede leer los eventos de su organización'
+);
+select throws_ok(
+  format(
+    'select public.change_event_status(%L::uuid, %L::public.event_status)',
+    (select event_id from beta_state), 'published'
+  ),
+  '42501', 'No autorizado',
+  'viewer no puede mutar el evento'
+);
+
+select set_config('request.jwt.claim.sub', '61000000-0000-4000-8000-000000000006', true);
+select is(
+  (select count(*)::integer from public.event_schedule_items), 1,
+  'planner puede leer la agenda de su organización'
+);
+select lives_ok(
+  format(
+    'select public.update_event_details(%L::uuid,%L,%L::timestamptz,5,%L,%L)',
+    (select event_id from beta_state), 'Evento beta', '2027-11-20T18:00:00-06:00',
+    'Jardín', 'America/Mexico_City'
+  ),
+  'planner puede editar datos operativos'
 );
 
 select set_config('request.jwt.claim.sub', '60000000-0000-4000-8000-000000000006', true);
