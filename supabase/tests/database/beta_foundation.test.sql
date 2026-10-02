@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(27);
+select plan(33);
 
 insert into auth.users (
   id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -50,6 +50,7 @@ create temp table beta_state (
   event_id uuid,
   party_id uuid,
   schedule_id uuid,
+  second_schedule_id uuid,
   token text,
   named_id uuid,
   plus_one_id uuid
@@ -149,6 +150,55 @@ select is(
   0::numeric,
   'el porcentaje de respuesta inicia en cero'
 );
+select throws_ok(
+  format(
+    'select public.create_guest_party_v2(%L::uuid,%L,%L,%L,null,3,%L::jsonb)',
+    (select event_id from beta_state), 'Grupo sin cupo', 'Contacto',
+    'contacto@example.test', '[]'
+  ),
+  '23514', 'No hay capacidad disponible para esos lugares',
+  'la base rechaza un grupo que excede la capacidad disponible'
+);
+select lives_ok(
+  format(
+    'update beta_state set second_schedule_id = public.create_schedule_item(event_id,%L,%L,%L::timestamptz,%L::timestamptz,%L,%L)',
+    'Recepción', 'Cena y celebración', '2027-11-20T20:00:00-06:00',
+    '2027-11-21T01:00:00-06:00', 'Salón', 'Avenida de prueba'
+  ),
+  'el organizador agrega otra actividad'
+);
+select lives_ok(
+  format(
+    'select public.update_schedule_item(%L::uuid,%L,%L,%L::timestamptz,%L::timestamptz,%L,%L)',
+    (select schedule_id from beta_state), 'Ceremonia religiosa', 'Llegar temprano',
+    '2027-11-20T18:00:00-06:00', '2027-11-20T19:00:00-06:00',
+    'Templo', 'Calle de prueba'
+  ),
+  'el organizador edita una actividad'
+);
+select lives_ok(
+  format(
+    'select public.reorder_schedule_items(%L::uuid,ARRAY[%L::uuid,%L::uuid])',
+    (select event_id from beta_state), (select second_schedule_id from beta_state),
+    (select schedule_id from beta_state)
+  ),
+  'la agenda se reordena transaccionalmente'
+);
+select is(
+  public.get_public_invitation((select token from beta_state))
+    -> 'event' -> 'schedule' -> 0 ->> 'title',
+  'Recepción',
+  'la invitación pública conserva el orden configurado'
+);
+select is(
+  (
+    select id from public.event_schedule_items
+    where event_id = (select event_id from beta_state) and removed_at is null
+    order by display_order limit 1
+  ),
+  (select second_schedule_id from beta_state),
+  'la administración lee el mismo orden de agenda'
+);
 
 select set_config('request.jwt.claim.sub', '62000000-0000-4000-8000-000000000006', true);
 select is(
@@ -166,7 +216,7 @@ select throws_ok(
 
 select set_config('request.jwt.claim.sub', '61000000-0000-4000-8000-000000000006', true);
 select is(
-  (select count(*)::integer from public.event_schedule_items), 1,
+  (select count(*)::integer from public.event_schedule_items), 2,
   'planner puede leer la agenda de su organización'
 );
 select lives_ok(
