@@ -1,22 +1,29 @@
 # Roadmap
 
-## Fase actual — Fundamentos verticales
+## Completado — Fundamentos verticales
 
 - Auth, organización personal y aislamiento RLS.
 - Evento, grupo, lugares individuales y capacidad derivada.
 - Enlace seguro, RSVP transaccional, historial e idempotencia.
 - Dashboard mobile-first, Realtime, pruebas y CI.
 
-## Siguiente fase recomendada — Endurecimiento beta
+## Fase actual — Base funcional y endurecimiento beta
 
-- Ejecutar pruebas RLS en Supabase local y revisar planes con `EXPLAIN`.
-- Conectar staging Supabase y configurar recuperación/verificación con SMTP de pruebas.
-- Edición segura de evento/grupos, revocación visible y exportación CSV.
-- Observabilidad sin PII, rate limiting del endpoint RSVP y pruebas E2E reales.
+- Agenda ordenada con edición y retiro lógico.
+- Contacto/cupo de grupos, lugares nominales y acompañantes vinculados.
+- Edición transaccional, búsqueda/filtros y ciclo borrador/publicado/archivado.
+- Métricas derivadas, pruebas unitarias y pgTAP ampliadas.
+
+## Siguiente fase recomendada — Cerrar la beta operativa
+
+- Aplicar las migraciones beta al proyecto de desarrollo después de revisar CI.
+- Añadir revocación visible, importación/exportación CSV y pruebas E2E de navegador.
+- Configurar SMTP de pruebas, rate limiting público y observabilidad sin PII.
+- Revisar índices y planes con un volumen sintético representativo.
 
 ## Después
 
-- Sistema visual, contrato de plantillas y una invitación premium.
+- Sistema visual, contrato de plantillas y primera invitación premium.
 - Importación CSV y envío manual asistido.
 - Publicación y cobro por evento.
 

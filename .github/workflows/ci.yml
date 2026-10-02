@@ -1,8 +1,9 @@
 name: CI
 
 on:
+  workflow_dispatch:
   push:
-    branches: [codex/invitame-rebuild]
+    branches: [codex/invitame-rebuild, codex/invitame-beta-foundation]
   pull_request:
     branches: [master]
 
@@ -35,4 +36,5 @@ jobs:
         with:
           version: 2.117.0
       - run: supabase start
+      - run: supabase db lint --local
       - run: supabase test db

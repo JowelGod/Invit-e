@@ -34,21 +34,42 @@ idempotencia y transacciones. Las configuraciones flexibles futuras viven en
 ## Modelo
 
 Las migraciones versionadas definen: `profiles`, `organizations`, `organization_members`,
-`events`, `guest_parties`, `invitees`, `invitation_links`, `rsvp_events` y `audit_log`.
+`events`, `event_schedule_items`, `guest_parties`, `invitees`, `invitation_links`,
+`rsvp_events` y `audit_log`.
 
 `invitees.public_key` es un identificador público no secuencial distinto del PK interno. El
-endpoint público jamás devuelve PK, organización, correo o teléfono. En esta fase ni siquiera
-se almacenan datos de contacto de invitados.
+endpoint público jamás devuelve PK internos, organización, correo o teléfono. El contacto
+operativo del grupo se almacena en `guest_parties`, queda aislado por organización y sólo lo
+leen miembros autenticados. El invitado público recibe únicamente claves públicas aleatorias,
+contenido del evento, agenda y lugares de su grupo.
+
+`guest_parties.assigned_capacity` expresa el cupo administrativo del grupo. Cada uno de esos
+lugares existe también como fila activa en `invitees`; el valor sólo puede cambiar mediante RPC,
+que crea lugares anónimos o retira lugares elegibles en la misma transacción. Los conteos del
+evento nunca se leen de esta columna: siempre se derivan de `invitees`.
+
+## Fechas y zonas horarias
+
+- Instantes (`starts_at`, `ends_at`, `responded_at`) usan `timestamptz` y se transmiten en UTC.
+- Cada evento conserva una zona IANA en `events.timezone`; el cliente muestra fechas con
+  `Intl.DateTimeFormat` y esa zona explícita.
+- Los controles `datetime-local` se convierten a ISO antes de llamar RPC. En esta beta se asume
+  la zona del navegador al capturar; una fase posterior añadirá conversión explícita para
+  organizar eventos en otra zona.
+- Fechas sin hora futuras (aniversarios o vencimientos civiles) deben usar `date`, no medianoche
+  en UTC.
 
 ## Realtime
 
-Sólo `invitees` se agrega a `supabase_realtime`. El detalle se suscribe filtrando `event_id` y
-vuelve a consultar datos sujetos a RLS. Realtime mejora frescura, pero la consulta PostgreSQL
-sigue siendo la fuente de verdad.
+`invitees` y `event_schedule_items` se agregan a `supabase_realtime`. El detalle actualmente se
+suscribe a RSVP en `invitees` y vuelve a consultar datos sujetos a RLS; las mutaciones de agenda
+refrescan explícitamente. Realtime mejora frescura, pero PostgreSQL sigue siendo la autoridad.
 
 ## Entornos
 
-- Local: Supabase CLI + Docker, Vite y bandeja de correo local.
+- Local completo: Supabase CLI + Docker, Vite y bandeja de correo local.
+- Local sin hipervisor: Vite contra el proyecto de desarrollo remoto; las pruebas SQL se delegan
+  a GitHub Actions.
 - CI: servicios Supabase efímeros, pgTAP, lint, tests y build.
 - Producción: deliberadamente no configurada en esta fase; requerirá un proyecto Supabase,
   secretos del host y URLs de Auth aprobadas.

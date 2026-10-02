@@ -11,6 +11,8 @@ reutiliza plantillas del prototipo.
 - Colores con contraste legible y estados que también incluyen texto.
 - `prefers-reduced-motion` reduce animaciones y transiciones.
 - La aplicación administrativa y la invitación pública son layouts distintos.
+- Los grupos usan `details/summary` nativo para colapsar contenido sin JavaScript adicional.
+- Agenda, edición y filtros funcionan con teclado y sin gestos ni hover obligatorio.
 
 ## Preparación para la identidad futura
 
