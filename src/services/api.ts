@@ -9,7 +9,6 @@ import type {
   EventRecord,
   GuestPartyRecord,
   InviteeKind,
-  Json,
   InviteeRecord,
   PublicInvitation,
   RsvpResponse,
