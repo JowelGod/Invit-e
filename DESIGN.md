@@ -21,7 +21,6 @@ fase de diseño debe sustituir tokens, tipografía y componentes sin cambiar flu
 Antes de construir plantillas se definirá un contrato de contenido y un prototipo de motion con
 audio opt-in, rendimiento móvil y alternativa de movimiento reducido.
 
-
 ## Corrección UX beta
 
 - Las tarjetas de grupo abren en lectura y muestran un único botón “Editar”.

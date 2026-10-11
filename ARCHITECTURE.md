@@ -101,7 +101,6 @@ hashes, respuestas ni eventos RSVP existentes.
 - Producción: deliberadamente no configurada en esta fase; requerirá un proyecto Supabase,
   secretos del host y URLs de Auth aprobadas.
 
-
 ## Persistencia de administración
 
 La interfaz no encadena formularios independientes para un mismo grupo. Construye un borrador

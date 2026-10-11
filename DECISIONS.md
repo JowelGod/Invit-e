@@ -71,7 +71,6 @@ la presentación. Las fechas civiles futuras usarán `date`. La beta no añade u
 fechas: usa APIs estándar y documenta la limitación al editar eventos en una zona distinta de la
 del navegador.
 
-
 ## ADR-013 — Borrador transaccional de grupo
 
 **Estado:** aceptada. La edición administrativa de un grupo se confirma con una única RPC. La

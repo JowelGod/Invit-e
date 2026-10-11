@@ -53,7 +53,6 @@ liberar o ampliar capacidad antes de aceptar ese cambio.
   aceptan RSVP.
 - La plantilla queda bloqueada al publicar o generar el primer enlace.
 
-
 ## Edición y enlaces
 
 El alta y la edición de un grupo son una sola operación transaccional: nombre, personas, +1,
