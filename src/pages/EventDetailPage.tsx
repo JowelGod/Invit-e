@@ -45,8 +45,25 @@ export function EventDetailPage() {
   }, [eventId]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    let active = true;
+    void getEventDetail(eventId)
+      .then((result) => {
+        if (active) {
+          setDetail(result);
+          setError('');
+        }
+      })
+      .catch((caught: unknown) => {
+        if (active)
+          setError(caught instanceof Error ? caught.message : 'No fue posible cargar el evento.');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [eventId]);
 
   useEffect(() => {
     if (!eventId) return;
@@ -88,7 +105,6 @@ export function EventDetailPage() {
       setMessage('Grupo guardado y enlace seguro creado.');
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'No fue posible crear el grupo.');
-      throw caught;
     } finally {
       setBusy(false);
     }
