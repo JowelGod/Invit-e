@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 
-import { formatDateTime, toDateTimeLocal } from '../lib/dates';
+import { formatDateTime, minDateTimeLocal, toDateTimeLocal, validateDateRange } from '../lib/dates';
 import { formText } from '../lib/forms';
 import { moveItem } from '../lib/admin';
 import type { ScheduleItem } from '../lib/types';
@@ -38,6 +38,11 @@ export function ScheduleManager({ eventId, timezone, items, disabled, onChanged,
         venueName: formText(form, 'venueName'),
         address: formText(form, 'address'),
       };
+      const dateError = validateDateRange(input.startsAt, input.endsAt);
+      if (dateError) throw new Error(dateError);
+      if (!itemId && new Date(input.startsAt) < new Date()) {
+        throw new Error('La actividad debe iniciar en una fecha futura.');
+      }
       if (itemId) await updateScheduleItem(itemId, input);
       else await createScheduleItem(eventId, input);
       target.reset();
@@ -179,6 +184,7 @@ function ScheduleForm({
             name="startsAt"
             type="datetime-local"
             required
+            min={item ? undefined : minDateTimeLocal()}
             defaultValue={item ? toDateTimeLocal(item.starts_at) : ''}
           />
         </label>

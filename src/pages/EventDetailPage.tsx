@@ -1,25 +1,28 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 
 import { CapacityGrid } from '../components/CapacityGrid';
 import { FormMessage } from '../components/FormMessage';
+import { GuestPartyForm, type PartyFormValue } from '../components/GuestPartyForm';
 import { PartyCard } from '../components/PartyCard';
 import { ScheduleManager } from '../components/ScheduleManager';
 import { filterParties, type PartyFilter } from '../lib/admin';
-import { formatDateTime, toDateTimeLocal } from '../lib/dates';
+import { formatDateTime, minDateTimeLocal, toDateTimeLocal } from '../lib/dates';
 import { formText } from '../lib/forms';
 import { supabase } from '../lib/supabase';
 import type { EventDetail, EventStatus } from '../lib/types';
 import {
   changeEventStatus,
-  createGuestParty,
+  deleteDraftEvent,
   getEventDetail,
+  saveGuestParty,
   subscribeToEvent,
   updateEvent,
 } from '../services/api';
 
 export function EventDetailPage() {
   const { eventId = '' } = useParams();
+  const navigate = useNavigate();
   const [detail, setDetail] = useState<EventDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -27,6 +30,8 @@ export function EventDetailPage() {
   const [busy, setBusy] = useState(false);
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<PartyFilter>('all');
+  const [newLink, setNewLink] = useState('');
+  const [copied, setCopied] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -40,25 +45,8 @@ export function EventDetailPage() {
   }, [eventId]);
 
   useEffect(() => {
-    let active = true;
-    void getEventDetail(eventId)
-      .then((result) => {
-        if (active) {
-          setDetail(result);
-          setError('');
-        }
-      })
-      .catch((caught: unknown) => {
-        if (active)
-          setError(caught instanceof Error ? caught.message : 'No fue posible cargar el evento.');
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [eventId]);
+    void load();
+  }, [load]);
 
   useEffect(() => {
     if (!eventId) return;
@@ -88,35 +76,22 @@ export function EventDetailPage() {
     }
   }
 
-  async function handleCreateParty(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const target = event.currentTarget;
-    const form = new FormData(target);
-    const names = formText(form, 'names')
-      .split('\n')
-      .map((name) => name.trim())
-      .filter(Boolean);
-    const assignedCapacity = Number(form.get('places'));
-    if (names.length > assignedCapacity) {
-      setError(
-        `Hay ${names.length} nombres para ${assignedCapacity} lugares. Aumenta el cupo o retira nombres.`,
-      );
-      return;
+  async function handleCreateParty(value: PartyFormValue) {
+    setBusy(true);
+    setError('');
+    setMessage('');
+    try {
+      const result = await saveGuestParty({ eventId, partyId: null, ...value });
+      setNewLink(result.link || '');
+      setCopied(false);
+      await load();
+      setMessage('Grupo guardado y enlace seguro creado.');
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'No fue posible crear el grupo.');
+      throw caught;
+    } finally {
+      setBusy(false);
     }
-    await run(
-      () =>
-        createGuestParty({
-          eventId,
-          name: formText(form, 'partyName'),
-          primaryContactName: formText(form, 'primaryContactName'),
-          contactEmail: formText(form, 'contactEmail'),
-          contactPhone: formText(form, 'contactPhone'),
-          assignedCapacity,
-          inviteeNames: names,
-        }),
-      'Grupo agregado.',
-    );
-    target.reset();
   }
 
   async function handleEventUpdate(event: FormEvent<HTMLFormElement>) {
@@ -130,7 +105,7 @@ export function EventDetailPage() {
           startsAt: formText(form, 'startsAt'),
           capacity: Number(form.get('capacity')),
           locationName: formText(form, 'locationName'),
-          timezone: formText(form, 'timezone'),
+          timezone: detail?.event.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
         }),
       'Evento actualizado.',
     );
@@ -140,6 +115,19 @@ export function EventDetailPage() {
     if (status === 'archived' && !window.confirm('¿Archivar este evento? No se podrá reactivar.'))
       return;
     await run(() => changeEventStatus(eventId, status), 'Estado actualizado.');
+  }
+
+  async function removeDraft() {
+    if (!window.confirm('¿Eliminar este borrador? Sólo es posible si no tiene enlaces ni historial.'))
+      return;
+    setBusy(true);
+    try {
+      await deleteDraftEvent(eventId);
+      void navigate('/app');
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'No fue posible eliminar el evento.');
+      setBusy(false);
+    }
   }
 
   if (loading)
@@ -159,13 +147,21 @@ export function EventDetailPage() {
 
   return (
     <section aria-labelledby="event-title">
-      <Link className="back-link" to="/app">
-        ← Todos los eventos
+      <nav className="breadcrumbs desktop-only" aria-label="Migas de pan">
+        <Link to="/app">Inicio</Link>
+        <span aria-hidden="true">›</span>
+        <Link to="/app">Eventos</Link>
+        <span aria-hidden="true">›</span>
+        <span aria-current="page">{detail.event.title}</span>
+      </nav>
+      <Link className="back-link mobile-only" to="/app">
+        ← Eventos
       </Link>
+
       <div className="page-heading">
         <div>
-          <p className="eyebrow">{formatDateTime(detail.event.starts_at, detail.event.timezone)}</p>
           <h1 id="event-title">{detail.event.title}</h1>
+          <p className="event-date">{formatDateTime(detail.event.starts_at, detail.event.timezone)}</p>
           <p>
             {detail.event.location_name || 'Ubicación por definir'} · Estado:{' '}
             {statusLabel(detail.event.status)}
@@ -186,16 +182,27 @@ export function EventDetailPage() {
                 Volver a borrador
               </button>
             )}
-            <button
-              className="button--danger"
-              disabled={busy}
-              onClick={() => void setStatus('archived')}
-            >
-              Archivar
-            </button>
+            <details className="danger-menu">
+              <summary>Más acciones</summary>
+              <div>
+                {detail.event.status === 'draft' && (
+                  <button className="button--danger" disabled={busy} onClick={() => void removeDraft()}>
+                    Eliminar evento
+                  </button>
+                )}
+                <button
+                  className="button--danger"
+                  disabled={busy}
+                  onClick={() => void setStatus('archived')}
+                >
+                  Archivar evento
+                </button>
+              </div>
+            </details>
           </div>
         )}
       </div>
+
       <FormMessage error={error} success={message} />
       {archived && (
         <p className="message archive-notice">
@@ -207,10 +214,7 @@ export function EventDetailPage() {
       <div className="beta-sections">
         <details className="content-section">
           <summary>Configuración del evento</summary>
-          <form
-            className="stack-form inline-form"
-            onSubmit={(event) => void handleEventUpdate(event)}
-          >
+          <form className="stack-form inline-form" onSubmit={(event) => void handleEventUpdate(event)}>
             <label>
               Nombre
               <input name="title" required maxLength={160} defaultValue={detail.event.title} />
@@ -221,6 +225,7 @@ export function EventDetailPage() {
                 <input
                   name="startsAt"
                   type="datetime-local"
+                  min={detail.event.starts_at > new Date().toISOString() ? minDateTimeLocal() : undefined}
                   required
                   defaultValue={toDateTimeLocal(detail.event.starts_at)}
                 />
@@ -239,19 +244,10 @@ export function EventDetailPage() {
             </div>
             <label>
               Ubicación general
-              <input
-                name="locationName"
-                maxLength={200}
-                defaultValue={detail.event.location_name || ''}
-              />
-            </label>
-            <label>
-              Zona horaria IANA
-              <input name="timezone" required defaultValue={detail.event.timezone} />
+              <input name="locationName" maxLength={200} defaultValue={detail.event.location_name || ''} />
             </label>
             <p className="form-hint">
-              Plantilla: <code>{detail.event.template_id}</code>. Se bloquea al publicar o generar
-              el primer enlace.
+              Zona horaria detectada: {detail.event.timezone}. Plantilla: {detail.event.template_id}.
             </p>
             <button disabled={archived || busy}>Guardar evento</button>
           </form>
@@ -273,22 +269,50 @@ export function EventDetailPage() {
               <p>{detail.parties.length} grupos registrados.</p>
             </div>
           </div>
+
+          {!archived && (
+            <details className="new-party-panel">
+              <summary>Agregar grupo</summary>
+              <GuestPartyForm
+                busy={busy}
+                submitLabel="Guardar grupo"
+                onSubmit={handleCreateParty}
+              />
+              {newLink && (
+                <div className="generated-link" role="status">
+                  <label htmlFor="new-party-link">Enlace creado</label>
+                  <div className="copy-field">
+                    <input id="new-party-link" readOnly value={newLink} />
+                    <button
+                      className="button--secondary"
+                      type="button"
+                      onClick={() => {
+                        void navigator.clipboard.writeText(newLink);
+                        setCopied(true);
+                      }}
+                    >
+                      Copiar
+                    </button>
+                  </div>
+                  <small aria-live="polite">{copied ? 'Enlace copiado.' : 'Disponible en esta sesión.'}</small>
+                </div>
+              )}
+            </details>
+          )}
+
           <div className="admin-filters" role="search">
             <label>
               Buscar
               <input
                 type="search"
                 value={query}
-                placeholder="Grupo, contacto o invitado"
+                placeholder="Grupo, destinatario o invitado"
                 onChange={(event) => setQuery(event.target.value)}
               />
             </label>
             <label>
               Respuesta
-              <select
-                value={filter}
-                onChange={(event) => setFilter(event.target.value as PartyFilter)}
-              >
+              <select value={filter} onChange={(event) => setFilter(event.target.value as PartyFilter)}>
                 <option value="all">Todas</option>
                 <option value="pending">Pendientes</option>
                 <option value="confirmed">Confirmadas</option>
@@ -303,62 +327,16 @@ export function EventDetailPage() {
             {visibleParties.map((party) => (
               <PartyCard
                 key={party.id}
+                eventId={eventId}
                 party={party}
                 disabled={archived}
                 onChanged={load}
                 onError={setError}
+                onSuccess={setMessage}
               />
             ))}
           </div>
         </section>
-
-        {!archived && (
-          <section className="side-panel" aria-labelledby="new-party-title">
-            <h2 id="new-party-title">Agregar grupo</h2>
-            <form onSubmit={(event) => void handleCreateParty(event)}>
-              <div className="field-grid">
-                <label>
-                  Familia, pareja o grupo
-                  <input name="partyName" required maxLength={160} placeholder="Familia García" />
-                </label>
-                <label>
-                  Contacto principal
-                  <input name="primaryContactName" required maxLength={160} />
-                </label>
-                <label>
-                  Email de contacto
-                  <input name="contactEmail" type="email" required maxLength={254} />
-                </label>
-                <label>
-                  Teléfono (opcional)
-                  <input name="contactPhone" type="tel" maxLength={32} />
-                </label>
-                <label>
-                  Lugares asignados
-                  <input
-                    name="places"
-                    type="number"
-                    inputMode="numeric"
-                    min="1"
-                    max="100"
-                    required
-                  />
-                </label>
-              </div>
-              <label>
-                Nombres, uno por línea (opcional)
-                <textarea name="names" rows={4} placeholder={'Ana García\nLuis García'} />
-              </label>
-              <small>
-                Los renglones faltantes se crean como lugares sin nombre. Después puedes marcar un
-                lugar como acompañante y vincularlo a una persona del grupo.
-              </small>
-              <button type="submit" disabled={busy}>
-                {busy ? 'Guardando…' : 'Agregar grupo'}
-              </button>
-            </form>
-          </section>
-        )}
       </div>
     </section>
   );

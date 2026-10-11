@@ -1,12 +1,15 @@
 import type { RealtimeChannel } from '@supabase/supabase-js';
 
 import { supabase } from '../lib/supabase';
+import type { Json } from '../lib/database.types';
 import type {
   CapacitySummary,
+  DeliveryRecipient,
   EventDetail,
   EventRecord,
   GuestPartyRecord,
   InviteeKind,
+  Json,
   InviteeRecord,
   PublicInvitation,
   RsvpResponse,
@@ -20,8 +23,9 @@ export async function listEvents(): Promise<EventRecord[]> {
   const { data, error } = await supabase
     .from('events')
     .select(
-      'id,title,starts_at,timezone,location_name,capacity,status,template_id,published_at,archived_at',
+      'id,title,starts_at,timezone,location_name,capacity,status,template_id,published_at,archived_at,deleted_at',
     )
+    .is('deleted_at', null)
     .order('starts_at', { ascending: true });
   if (error) fail('No se pudieron cargar los eventos.', error);
 
@@ -55,14 +59,15 @@ export async function createEvent(input: {
 }
 
 export async function getEventDetail(eventId: string): Promise<EventDetail> {
-  const [eventResult, partiesResult, inviteesResult, scheduleResult, summaryResult] =
+  const [eventResult, partiesResult, inviteesResult, scheduleResult, summaryResult, deliveryResult] =
     await Promise.all([
       supabase
         .from('events')
         .select(
-          'id,title,starts_at,timezone,location_name,capacity,status,template_id,published_at,archived_at',
+          'id,title,starts_at,timezone,location_name,capacity,status,template_id,published_at,archived_at,deleted_at',
         )
         .eq('id', eventId)
+        .is('deleted_at', null)
         .single(),
       supabase
         .from('guest_parties')
@@ -88,6 +93,7 @@ export async function getEventDetail(eventId: string): Promise<EventDetail> {
         .is('removed_at', null)
         .order('display_order'),
       supabase.rpc('event_capacity_summary', { p_event_id: eventId }),
+      supabase.rpc('get_event_delivery_state', { p_event_id: eventId }),
     ]);
 
   if (eventResult.error) fail('No se pudo cargar el evento.', eventResult.error);
@@ -95,16 +101,28 @@ export async function getEventDetail(eventId: string): Promise<EventDetail> {
   if (inviteesResult.error) fail('No se pudieron cargar los lugares.', inviteesResult.error);
   if (scheduleResult.error) fail('No se pudo cargar la agenda.', scheduleResult.error);
   if (summaryResult.error) fail('No se pudo calcular la capacidad.', summaryResult.error);
+  if (deliveryResult.error) fail('No se pudieron cargar los destinatarios.', deliveryResult.error);
 
   const invitees = (inviteesResult.data || []) as (InviteeRecord & {
     guest_party_id: string;
   })[];
-  const parties = ((partiesResult.data || []) as Omit<GuestPartyRecord, 'invitees'>[]).map(
-    (party) => ({
+  const delivery = (deliveryResult.data || []) as unknown as Array<{
+    party_id: string;
+    has_active_link: boolean;
+    recipients: DeliveryRecipient[];
+  }>;
+  const parties = ((partiesResult.data || []) as Omit<
+    GuestPartyRecord,
+    'invitees' | 'recipients' | 'has_active_link'
+  >[]).map((party) => {
+    const state = delivery.find((item) => item.party_id === party.id);
+    return {
       ...party,
       invitees: invitees.filter((invitee) => invitee.guest_party_id === party.id),
-    }),
-  );
+      recipients: state?.recipients || [],
+      has_active_link: state?.has_active_link || false,
+    };
+  });
 
   return {
     event: eventResult.data,
@@ -138,6 +156,51 @@ export async function createGuestParty(input: {
   });
   if (error || typeof data !== 'string') fail('No se pudo crear el grupo.', error);
   return data;
+}
+
+export interface SaveGuestPartyInput {
+  eventId: string;
+  partyId: string | null;
+  name: string;
+  invitees: Array<{
+    key: string;
+    display_name: string;
+    invitee_type: 'named_guest' | 'plus_one';
+    companion_of_key?: string;
+  }>;
+  recipients: Array<{ kind: 'email' | 'phone'; value: string }>;
+}
+
+export async function saveGuestParty(
+  input: SaveGuestPartyInput,
+): Promise<{ partyId: string; link: string | null }> {
+  const { data, error } = await supabase.rpc('save_guest_party_v3', {
+    p_event_id: input.eventId,
+    p_guest_party_id: input.partyId,
+    p_name: input.name,
+    p_invitees: input.invitees as unknown as Json,
+    p_recipients: input.recipients as unknown as Json,
+  });
+  if (error || !data || typeof data !== 'object') fail('No se pudo guardar el grupo.', error);
+  const result = data as { party_id?: string; token?: string | null };
+  if (!result.party_id) fail('La base no confirmó el grupo.');
+  const appUrl = import.meta.env.VITE_APP_URL || window.location.origin;
+  return {
+    partyId: result.party_id,
+    link: result.token ? appUrl.replace(/\/$/, '') + '/i/' + result.token : null,
+  };
+}
+
+export async function resetGuestPartyResponses(partyId: string): Promise<void> {
+  const { error } = await supabase.rpc('reset_guest_party_responses', {
+    p_guest_party_id: partyId,
+  });
+  if (error) fail('No se pudieron reiniciar las respuestas.', error);
+}
+
+export async function deleteDraftEvent(eventId: string): Promise<void> {
+  const { error } = await supabase.rpc('delete_draft_event', { p_event_id: eventId });
+  if (error) fail('No se pudo eliminar el evento.', error);
 }
 
 export async function updateEvent(input: {

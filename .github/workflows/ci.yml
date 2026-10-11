@@ -3,7 +3,7 @@ name: CI
 on:
   workflow_dispatch:
   push:
-    branches: [codex/invitame-rebuild, codex/invitame-beta-foundation]
+    branches: [codex/invitame-rebuild, codex/invitame-beta-foundation, codex/invitame-beta-ux-fixes]
   pull_request:
     branches: [master]
 

@@ -25,6 +25,7 @@ export interface EventRecord {
   template_id: string;
   published_at: string | null;
   archived_at: string | null;
+  deleted_at: string | null;
   summary?: CapacitySummary;
 }
 
@@ -42,6 +43,12 @@ export interface InviteeRecord {
   created_at: string;
 }
 
+export interface DeliveryRecipient {
+  id: string;
+  kind: 'email' | 'phone';
+  value: string;
+}
+
 export interface GuestPartyRecord {
   id: string;
   name: string;
@@ -51,6 +58,8 @@ export interface GuestPartyRecord {
   assigned_capacity: number;
   created_at: string;
   invitees: InviteeRecord[];
+  recipients: DeliveryRecipient[];
+  has_active_link: boolean;
 }
 
 export interface ScheduleItem {

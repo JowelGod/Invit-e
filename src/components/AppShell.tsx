@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 
 import { useAuth } from '../auth/useAuth';
@@ -5,6 +6,8 @@ import { useAuth } from '../auth/useAuth';
 export function AppShell() {
   const { signOut, user } = useAuth();
   const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const initial = (user?.email?.trim().charAt(0) || 'U').toUpperCase();
 
   async function handleSignOut() {
     await signOut();
@@ -21,13 +24,29 @@ export function AppShell() {
           <NavLink to="/app" end>
             Eventos
           </NavLink>
-          <button className="text-button" type="button" onClick={() => void handleSignOut()}>
-            Salir
-          </button>
+          <div className="account-menu">
+            <button
+              className="avatar-button"
+              type="button"
+              aria-label="Abrir menú de cuenta"
+              aria-expanded={open}
+              onClick={() => setOpen((value) => !value)}
+            >
+              {initial}
+            </button>
+            {open && (
+              <div className="account-popover">
+                <p>Cuenta</p>
+                <small>{user?.email}</small>
+                <button className="text-button" type="button" onClick={() => void handleSignOut()}>
+                  Cerrar sesión
+                </button>
+              </div>
+            )}
+          </div>
         </nav>
       </header>
       <main className="app-main">
-        <p className="account-label">{user?.email}</p>
         <Outlet />
       </main>
     </div>

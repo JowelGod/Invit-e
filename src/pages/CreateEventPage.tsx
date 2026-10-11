@@ -2,6 +2,7 @@ import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { FormMessage } from '../components/FormMessage';
+import { minDateTimeLocal } from '../lib/dates';
 import { formText } from '../lib/forms';
 import { createEvent } from '../services/api';
 
@@ -42,7 +43,7 @@ export function CreateEventPage() {
         <label htmlFor="title">Nombre del evento</label>
         <input id="title" name="title" required maxLength={160} placeholder="Boda de Ana y Luis" />
         <label htmlFor="startsAt">Fecha y hora</label>
-        <input id="startsAt" name="startsAt" type="datetime-local" required />
+        <input id="startsAt" name="startsAt" type="datetime-local" min={minDateTimeLocal()} required />
         <label htmlFor="locationName">Lugar</label>
         <input
           id="locationName"

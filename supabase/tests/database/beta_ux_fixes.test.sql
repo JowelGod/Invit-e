@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(18);
+select plan(19);
 
 insert into auth.users (
   id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -74,6 +74,16 @@ select is(
   public.get_public_invitation((select token from ux_state))
     -> 'places' -> 0 ->> 'name',
   'Maya', 'el enlace público muestra el nombre guardado'
+);
+
+select lives_ok(
+  format(
+    'select public.respond_to_invitation(%L,%L::jsonb,%L::uuid)',
+    (select token from ux_state),
+    '[{"invitee_key":"83000000-0000-4000-8000-000000000008","status":"confirmed"}]',
+    '86000000-0000-4000-8000-000000000008'
+  ),
+  'una respuesta crea historial antes de editar'
 );
 
 select lives_ok(
