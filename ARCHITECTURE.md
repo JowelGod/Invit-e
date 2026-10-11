@@ -34,18 +34,19 @@ idempotencia y transacciones. Las configuraciones flexibles futuras viven en
 ## Modelo
 
 Las migraciones versionadas definen: `profiles`, `organizations`, `organization_members`,
-`events`, `event_schedule_items`, `guest_parties`, `invitees`, `invitation_links`,
-`rsvp_events` y `audit_log`.
+`events`, `event_schedule_items`, `guest_parties`, `invitees`,
+`party_delivery_recipients`, `invitation_links`, `rsvp_events` y `audit_log`.
 
 `invitees.public_key` es un identificador público no secuencial distinto del PK interno. El
-endpoint público jamás devuelve PK internos, organización, correo o teléfono. El contacto
-operativo del grupo se almacena en `guest_parties`, queda aislado por organización y sólo lo
-leen miembros autenticados. El invitado público recibe únicamente claves públicas aleatorias,
+endpoint público jamás devuelve PK internos, organización, correo o teléfono. Los destinatarios se normalizan en `party_delivery_recipients`, quedan aislados por
+organización y sólo los leen miembros autenticados. Las columnas de contacto anteriores se
+mantienen como compatibilidad durante la transición. El invitado público recibe únicamente claves públicas aleatorias,
 contenido del evento, agenda y lugares de su grupo.
 
-`guest_parties.assigned_capacity` expresa el cupo administrativo del grupo. Cada uno de esos
-lugares existe también como fila activa en `invitees`; el valor sólo puede cambiar mediante RPC,
-que crea lugares anónimos o retira lugares elegibles en la misma transacción. Los conteos del
+`guest_parties.assigned_capacity` se conserva por compatibilidad, pero el flujo UX lo deriva de
+las filas activas de `invitees`. `save_guest_party_v3` bloquea evento y grupo, valida capacidad,
+persiste nombre, personas, +1, orden y destinatarios, y crea el primer enlace dentro de una
+única transacción. Los conteos del
 evento nunca se leen de esta columna: siempre se derivan de `invitees`.
 
 ## Fechas y zonas horarias
@@ -99,3 +100,15 @@ hashes, respuestas ni eventos RSVP existentes.
 - CI: servicios Supabase efímeros, pgTAP, lint, tests y build.
 - Producción: deliberadamente no configurada en esta fase; requerirá un proyecto Supabase,
   secretos del host y URLs de Auth aprobadas.
+
+
+## Persistencia de administración
+
+La interfaz no encadena formularios independientes para un mismo grupo. Construye un borrador
+local y llama una vez a `save_guest_party_v3`. La RPC sólo devuelve éxito después del commit; un
+error mantiene el modo edición y no se anuncia como guardado. `get_public_invitation` consulta
+las filas actuales, por lo que un enlace activo refleja cambios guardados sin regenerarse.
+
+El token en claro no es recuperable después de la sesión que lo creó. Esa limitación es
+intencional: la base conserva únicamente SHA-256. Si se pierde el enlace, el flujo explícito
+revoca el anterior y emite otro.

@@ -3,28 +3,34 @@
 ## Completado — Fundamentos verticales
 
 - Auth, organización personal y aislamiento RLS.
-- Evento, grupo, lugares individuales y capacidad derivada.
+- Evento, agenda, grupos, lugares individuales, acompañantes y capacidad derivada.
 - Enlace seguro, RSVP transaccional, historial e idempotencia.
-- Dashboard mobile-first, Realtime, pruebas y CI.
+- Ciclo borrador/publicado/archivado, pruebas unitarias, pgTAP y CI.
+- Migraciones beta aplicadas al proyecto `invitame-development`.
 
-## Fase actual — Base funcional y endurecimiento beta
+## Fase actual — Corrección funcional y UX beta
 
-- Agenda ordenada con edición y retiro lógico.
-- Contacto/cupo de grupos, lugares nominales y acompañantes vinculados.
-- Edición transaccional, búsqueda/filtros y ciclo borrador/publicado/archivado.
-- Métricas derivadas, pruebas unitarias y pgTAP ampliadas.
+- Guardado atómico de grupo, personas, +1, orden y destinatarios.
+- Capacidad de grupo derivada; sin “usuario/contacto principal” en la interfaz.
+- Tarjetas en lectura con modo de edición explícito y un solo guardado.
+- Primer enlace automático, copia accesible y revocación separada de RSVP.
+- Reinicio de respuestas auditado, fechas futuras y eliminación lógica segura.
+- Breadcrumbs, navegación móvil y menú de cuenta.
 
 ## Siguiente fase recomendada — Cerrar la beta operativa
 
-- Aplicar las migraciones beta al proyecto de desarrollo después de revisar CI.
-- Añadir revocación visible, importación/exportación CSV y pruebas E2E de navegador.
-- Configurar SMTP de pruebas, rate limiting público y observabilidad sin PII.
-- Revisar índices y planes con un volumen sintético representativo.
+- Revisar y aplicar manualmente `202610100001_beta_ux_fixes.sql` en desarrollo.
+- Ejecutar el recorrido manual completo contra `invitame-development`.
+- Añadir E2E de navegador para persistencia, enlace público y errores de RPC.
+- Incorporar rate limiting público, observabilidad sin PII y revisión de planes/índices con
+  volumen sintético.
+- Configurar SMTP exclusivamente en staging.
 
 ## Después
 
+- Integración aislada de Places/Maps con cuotas y clave restringida.
 - Sistema visual, contrato de plantillas y primera invitación premium.
-- Importación CSV y envío manual asistido.
+- Importación/exportación CSV y envío manual asistido.
 - Publicación y cobro por evento.
 
 ## Post-MVP

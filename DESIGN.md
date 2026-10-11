@@ -20,3 +20,15 @@ Los valores visuales están centralizados como custom properties en `src/styles.
 fase de diseño debe sustituir tokens, tipografía y componentes sin cambiar flujos ni lógica.
 Antes de construir plantillas se definirá un contrato de contenido y un prototipo de motion con
 audio opt-in, rendimiento móvil y alternativa de movimiento reducido.
+
+
+## Corrección UX beta
+
+- Las tarjetas de grupo abren en lectura y muestran un único botón “Editar”.
+- Nombre, personas, +1, orden y destinatarios comparten un solo “Guardar cambios”.
+- “Agregar uno por uno” es el flujo principal y “Pegar una lista” es la alternativa.
+- La cantidad de boletos se presenta como resultado de personas y acompañantes.
+- Los emails y teléfonos aparecen como destinatarios, no como “contacto principal”.
+- Escritorio usa breadcrumbs; móvil usa “← Eventos”.
+- El email de sesión vive dentro del menú de cuenta y no permanece expuesto en el encabezado.
+- Copiar enlace confirma el resultado mediante una región accesible.

@@ -70,3 +70,27 @@ es un slug (`basic` por defecto) y queda bloqueada después de publicar o emitir
 la presentación. Las fechas civiles futuras usarán `date`. La beta no añade una librería de
 fechas: usa APIs estándar y documenta la limitación al editar eventos en una zona distinta de la
 del navegador.
+
+
+## ADR-013 — Borrador transaccional de grupo
+
+**Estado:** aceptada. La edición administrativa de un grupo se confirma con una única RPC. La
+capacidad del grupo se deriva de invitados y +1 activos; no se captura manualmente. Omitir una
+persona equivale a solicitar retiro lógico y se rechaza si existe respuesta o historial.
+
+## ADR-014 — Destinatarios separados de invitados
+
+**Estado:** aceptada. `party_delivery_recipients` modela emails y teléfonos que recibirán el
+enlace. No consumen boletos, no aparecen en la invitación pública y todavía no disparan envíos.
+
+## ADR-015 — Enlace estable y reinicio separado
+
+**Estado:** aceptada. El contenido guardado aparece en el mismo enlace activo. Regenerar se usa
+sólo para revocar un token comprometido y conserva RSVP. Reiniciar respuestas es otra acción,
+requiere confirmación, conserva el historial append-only y genera auditoría.
+
+## ADR-016 — Eliminación lógica restringida
+
+**Estado:** aceptada. Sólo un borrador sin enlaces ni historial puede marcarse como eliminado.
+Los eventos con trazabilidad se archivan. RLS y funciones de acceso excluyen eventos eliminados
+y sus entidades hijas.
