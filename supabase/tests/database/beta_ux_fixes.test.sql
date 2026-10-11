@@ -162,9 +162,9 @@ select throws_ok(
   'un evento con enlace no se elimina'
 );
 select is(
-  (select count(*)::integer from public.invitation_links
-    where guest_party_id = (select party_id from ux_state) and revoked_at is null),
-  1, 'guardar cambios no regenera ni revoca el enlace'
+  public.get_event_delivery_state((select event_id from ux_state))
+    -> 0 ->> 'has_active_link',
+  'true', 'guardar cambios conserva el enlace activo sin exponer su secreto'
 );
 
 reset role;
