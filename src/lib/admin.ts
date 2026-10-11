@@ -16,7 +16,7 @@ export function filterParties(
         party.primary_contact_name,
         party.contact_email || '',
         party.contact_phone || '',
-        ...party.recipients.map((recipient) => recipient.value),
+        ...(party.recipients || []).map((recipient) => recipient.value),
         ...party.invitees.map((invitee) => invitee.display_name || invitee.companion_label || ''),
       ].some((value) => value.toLocaleLowerCase('es-MX').includes(normalized));
     const matchesResponse =
