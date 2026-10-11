@@ -7,7 +7,7 @@ language sql
 stable
 security definer
 set search_path = ''
-as $
+as $$
   select exists (
     select 1
     from public.events event
@@ -17,7 +17,7 @@ as $
       and event.deleted_at is null
       and membership.user_id = auth.uid()
   );
-$;
+$$;
 
 create or replace function public.can_manage_event(p_event_id uuid)
 returns boolean
@@ -25,7 +25,7 @@ language sql
 stable
 security definer
 set search_path = ''
-as $
+as $$
   select exists (
     select 1
     from public.events event
@@ -36,7 +36,7 @@ as $
       and membership.user_id = auth.uid()
       and membership.role in ('owner', 'admin', 'planner')
   );
-$;
+$$;
 
 create type public.delivery_recipient_kind as enum ('email', 'phone');
 
