@@ -12,6 +12,8 @@ const parties: GuestPartyRecord[] = [
     contact_phone: null,
     assigned_capacity: 2,
     created_at: '2026-01-01T00:00:00Z',
+    recipients: [],
+    has_active_link: false,
     invitees: [
       {
         id: 'invitee-a',
