@@ -2,11 +2,7 @@ import { useState } from 'react';
 
 import { buildDraftPeople } from '../lib/partyDraft';
 import type { GuestPartyRecord } from '../lib/types';
-import {
-  generateInvitationLink,
-  resetGuestPartyResponses,
-  saveGuestParty,
-} from '../services/api';
+import { generateInvitationLink, resetGuestPartyResponses, saveGuestParty } from '../services/api';
 import { GuestPartyForm, type PartyFormValue } from './GuestPartyForm';
 import { StatusBadge } from './StatusBadge';
 
@@ -19,14 +15,7 @@ interface Props {
   onSuccess: (message: string) => void;
 }
 
-export function PartyCard({
-  eventId,
-  party,
-  disabled,
-  onChanged,
-  onError,
-  onSuccess,
-}: Props) {
+export function PartyCard({ eventId, party, disabled, onChanged, onError, onSuccess }: Props) {
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(false);
   const [generatedLink, setGeneratedLink] = useState('');
@@ -200,7 +189,9 @@ export function PartyCard({
                   Copiar
                 </button>
               </div>
-              <small aria-live="polite">{copied ? 'Enlace copiado.' : 'Disponible en esta sesión.'}</small>
+              <small aria-live="polite">
+                {copied ? 'Enlace copiado.' : 'Disponible en esta sesión.'}
+              </small>
             </div>
           )}
         </div>

@@ -118,7 +118,9 @@ export function EventDetailPage() {
   }
 
   async function removeDraft() {
-    if (!window.confirm('¿Eliminar este borrador? Sólo es posible si no tiene enlaces ni historial.'))
+    if (
+      !window.confirm('¿Eliminar este borrador? Sólo es posible si no tiene enlaces ni historial.')
+    )
       return;
     setBusy(true);
     try {
@@ -161,7 +163,9 @@ export function EventDetailPage() {
       <div className="page-heading">
         <div>
           <h1 id="event-title">{detail.event.title}</h1>
-          <p className="event-date">{formatDateTime(detail.event.starts_at, detail.event.timezone)}</p>
+          <p className="event-date">
+            {formatDateTime(detail.event.starts_at, detail.event.timezone)}
+          </p>
           <p>
             {detail.event.location_name || 'Ubicación por definir'} · Estado:{' '}
             {statusLabel(detail.event.status)}
@@ -186,7 +190,11 @@ export function EventDetailPage() {
               <summary>Más acciones</summary>
               <div>
                 {detail.event.status === 'draft' && (
-                  <button className="button--danger" disabled={busy} onClick={() => void removeDraft()}>
+                  <button
+                    className="button--danger"
+                    disabled={busy}
+                    onClick={() => void removeDraft()}
+                  >
                     Eliminar evento
                   </button>
                 )}
@@ -214,7 +222,10 @@ export function EventDetailPage() {
       <div className="beta-sections">
         <details className="content-section">
           <summary>Configuración del evento</summary>
-          <form className="stack-form inline-form" onSubmit={(event) => void handleEventUpdate(event)}>
+          <form
+            className="stack-form inline-form"
+            onSubmit={(event) => void handleEventUpdate(event)}
+          >
             <label>
               Nombre
               <input name="title" required maxLength={160} defaultValue={detail.event.title} />
@@ -225,7 +236,11 @@ export function EventDetailPage() {
                 <input
                   name="startsAt"
                   type="datetime-local"
-                  min={detail.event.starts_at > new Date().toISOString() ? minDateTimeLocal() : undefined}
+                  min={
+                    detail.event.starts_at > new Date().toISOString()
+                      ? minDateTimeLocal()
+                      : undefined
+                  }
                   required
                   defaultValue={toDateTimeLocal(detail.event.starts_at)}
                 />
@@ -244,10 +259,15 @@ export function EventDetailPage() {
             </div>
             <label>
               Ubicación general
-              <input name="locationName" maxLength={200} defaultValue={detail.event.location_name || ''} />
+              <input
+                name="locationName"
+                maxLength={200}
+                defaultValue={detail.event.location_name || ''}
+              />
             </label>
             <p className="form-hint">
-              Zona horaria detectada: {detail.event.timezone}. Plantilla: {detail.event.template_id}.
+              Zona horaria detectada: {detail.event.timezone}. Plantilla: {detail.event.template_id}
+              .
             </p>
             <button disabled={archived || busy}>Guardar evento</button>
           </form>
@@ -294,7 +314,9 @@ export function EventDetailPage() {
                       Copiar
                     </button>
                   </div>
-                  <small aria-live="polite">{copied ? 'Enlace copiado.' : 'Disponible en esta sesión.'}</small>
+                  <small aria-live="polite">
+                    {copied ? 'Enlace copiado.' : 'Disponible en esta sesión.'}
+                  </small>
                 </div>
               )}
             </details>
@@ -312,7 +334,10 @@ export function EventDetailPage() {
             </label>
             <label>
               Respuesta
-              <select value={filter} onChange={(event) => setFilter(event.target.value as PartyFilter)}>
+              <select
+                value={filter}
+                onChange={(event) => setFilter(event.target.value as PartyFilter)}
+              >
                 <option value="all">Todas</option>
                 <option value="pending">Pendientes</option>
                 <option value="confirmed">Confirmadas</option>

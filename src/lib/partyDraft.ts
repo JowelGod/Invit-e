@@ -15,8 +15,7 @@ export function buildDraftPeople(invitees: InviteeRecord[]): DraftPerson[] {
   return named.map((invitee) => {
     const companion = invitees.find(
       (candidate) =>
-        candidate.invitee_type === 'plus_one' &&
-        candidate.companion_of_invitee_id === invitee.id,
+        candidate.invitee_type === 'plus_one' && candidate.companion_of_invitee_id === invitee.id,
     );
     return {
       key: invitee.public_key,
@@ -42,8 +41,7 @@ export function serializeDraftPeople(people: DraftPerson[]) {
       ? [
           {
             key: person.plusOne.key,
-            display_name:
-              person.plusOne.name.trim() || ('Acompañante de ' + person.name.trim()),
+            display_name: person.plusOne.name.trim() || 'Acompañante de ' + person.name.trim(),
             invitee_type: 'plus_one' as const,
             companion_of_key: person.key,
           },

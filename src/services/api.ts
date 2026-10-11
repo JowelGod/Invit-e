@@ -58,42 +58,48 @@ export async function createEvent(input: {
 }
 
 export async function getEventDetail(eventId: string): Promise<EventDetail> {
-  const [eventResult, partiesResult, inviteesResult, scheduleResult, summaryResult, deliveryResult] =
-    await Promise.all([
-      supabase
-        .from('events')
-        .select(
-          'id,title,starts_at,timezone,location_name,capacity,status,template_id,published_at,archived_at,deleted_at',
-        )
-        .eq('id', eventId)
-        .is('deleted_at', null)
-        .single(),
-      supabase
-        .from('guest_parties')
-        .select(
-          'id,name,primary_contact_name,contact_email,contact_phone,assigned_capacity,created_at',
-        )
-        .eq('event_id', eventId)
-        .order('created_at'),
-      supabase
-        .from('invitees')
-        .select(
-          'id,guest_party_id,public_key,display_name,response,responded_at,invitee_type,companion_of_invitee_id,companion_label,display_order,retired_at,created_at',
-        )
-        .eq('event_id', eventId)
-        .is('retired_at', null)
-        .order('display_order'),
-      supabase
-        .from('event_schedule_items')
-        .select(
-          'id,title,description,starts_at,ends_at,venue_name,address,place_id,latitude,longitude,display_order',
-        )
-        .eq('event_id', eventId)
-        .is('removed_at', null)
-        .order('display_order'),
-      supabase.rpc('event_capacity_summary', { p_event_id: eventId }),
-      supabase.rpc('get_event_delivery_state', { p_event_id: eventId }),
-    ]);
+  const [
+    eventResult,
+    partiesResult,
+    inviteesResult,
+    scheduleResult,
+    summaryResult,
+    deliveryResult,
+  ] = await Promise.all([
+    supabase
+      .from('events')
+      .select(
+        'id,title,starts_at,timezone,location_name,capacity,status,template_id,published_at,archived_at,deleted_at',
+      )
+      .eq('id', eventId)
+      .is('deleted_at', null)
+      .single(),
+    supabase
+      .from('guest_parties')
+      .select(
+        'id,name,primary_contact_name,contact_email,contact_phone,assigned_capacity,created_at',
+      )
+      .eq('event_id', eventId)
+      .order('created_at'),
+    supabase
+      .from('invitees')
+      .select(
+        'id,guest_party_id,public_key,display_name,response,responded_at,invitee_type,companion_of_invitee_id,companion_label,display_order,retired_at,created_at',
+      )
+      .eq('event_id', eventId)
+      .is('retired_at', null)
+      .order('display_order'),
+    supabase
+      .from('event_schedule_items')
+      .select(
+        'id,title,description,starts_at,ends_at,venue_name,address,place_id,latitude,longitude,display_order',
+      )
+      .eq('event_id', eventId)
+      .is('removed_at', null)
+      .order('display_order'),
+    supabase.rpc('event_capacity_summary', { p_event_id: eventId }),
+    supabase.rpc('get_event_delivery_state', { p_event_id: eventId }),
+  ]);
 
   if (eventResult.error) fail('No se pudo cargar el evento.', eventResult.error);
   if (partiesResult.error) fail('No se pudieron cargar los grupos.', partiesResult.error);
@@ -110,10 +116,12 @@ export async function getEventDetail(eventId: string): Promise<EventDetail> {
     has_active_link: boolean;
     recipients: DeliveryRecipient[];
   }>;
-  const parties = ((partiesResult.data || []) as Omit<
-    GuestPartyRecord,
-    'invitees' | 'recipients' | 'has_active_link'
-  >[]).map((party) => {
+  const parties = (
+    (partiesResult.data || []) as Omit<
+      GuestPartyRecord,
+      'invitees' | 'recipients' | 'has_active_link'
+    >[]
+  ).map((party) => {
     const state = delivery.find((item) => item.party_id === party.id);
     return {
       ...party,

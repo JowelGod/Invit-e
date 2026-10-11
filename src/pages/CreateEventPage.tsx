@@ -43,7 +43,13 @@ export function CreateEventPage() {
         <label htmlFor="title">Nombre del evento</label>
         <input id="title" name="title" required maxLength={160} placeholder="Boda de Ana y Luis" />
         <label htmlFor="startsAt">Fecha y hora</label>
-        <input id="startsAt" name="startsAt" type="datetime-local" min={minDateTimeLocal()} required />
+        <input
+          id="startsAt"
+          name="startsAt"
+          type="datetime-local"
+          min={minDateTimeLocal()}
+          required
+        />
         <label htmlFor="locationName">Lugar</label>
         <input
           id="locationName"

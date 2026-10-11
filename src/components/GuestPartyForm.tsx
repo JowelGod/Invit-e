@@ -215,7 +215,9 @@ export function GuestPartyForm({
                   type="button"
                   disabled={people.length === 1}
                   onClick={() =>
-                    setPeople((current) => current.filter((_, personIndex) => personIndex !== index))
+                    setPeople((current) =>
+                      current.filter((_, personIndex) => personIndex !== index),
+                    )
                   }
                 >
                   Eliminar invitado
