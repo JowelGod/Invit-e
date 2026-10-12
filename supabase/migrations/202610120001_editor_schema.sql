@@ -6,6 +6,10 @@ alter table public.events
 alter table public.invitees
   add column legacy_display_name text;
 
+update public.events
+set purge_after = deleted_at + interval '30 days'
+where deleted_at is not null and purge_after is null;
+
 alter table public.events
   add constraint events_trash_retention
   check (
