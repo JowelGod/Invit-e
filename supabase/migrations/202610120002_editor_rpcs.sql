@@ -253,9 +253,9 @@ begin
       raise exception 'No se puede reutilizar un boleto retirado' using errcode = '23514';
     end if;
     if existing_row.id is not null and existing_row.response <> 'pending'
-      and existing_row.invitee_type::text <> case
+      and existing_row.invitee_type::text <> (case
         when coalesce(item ->> 'invitee_type', 'named_guest') = 'named_guest'
-          then 'named_guest' else 'unnamed_extra' end then
+          then 'named_guest' else 'unnamed_extra' end) then
       raise exception 'No se puede cambiar el tipo de un boleto que ya respondió'
         using errcode = '23514';
     end if;
