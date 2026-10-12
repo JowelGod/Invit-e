@@ -34,18 +34,19 @@ idempotencia y transacciones. Las configuraciones flexibles futuras viven en
 ## Modelo
 
 Las migraciones versionadas definen: `profiles`, `organizations`, `organization_members`,
-`events`, `event_schedule_items`, `guest_parties`, `invitees`,
+`events`, `event_schedule_items`, `guest_parties`, `invitees`, `invitee_contacts`,
 `party_delivery_recipients`, `invitation_links`, `rsvp_events` y `audit_log`.
 
 `invitees.public_key` es un identificador público no secuencial distinto del PK interno. El
-endpoint público jamás devuelve PK internos, organización, correo o teléfono. Los destinatarios se normalizan en `party_delivery_recipients`, quedan aislados por
-organización y sólo los leen miembros autenticados. Las columnas de contacto anteriores se
-mantienen como compatibilidad durante la transición. El invitado público recibe únicamente claves públicas aleatorias,
+endpoint público jamás devuelve PK internos, organización, correo o teléfono. Los contactos
+nuevos se normalizan por invitado nominal en `invitee_contacts`; `party_delivery_recipients`
+se sincroniza como proyección compatible para clientes anteriores. Ambos quedan aislados por
+organización y sólo los leen miembros autenticados. El invitado público recibe únicamente claves públicas aleatorias,
 contenido del evento, agenda y lugares de su grupo.
 
 `guest_parties.assigned_capacity` se conserva por compatibilidad, pero el flujo UX lo deriva de
-las filas activas de `invitees`. `save_guest_party_v3` bloquea evento y grupo, valida capacidad,
-persiste nombre, personas, +1, orden y destinatarios, y crea el primer enlace dentro de una
+las filas activas de `invitees`. `save_guest_party_v4` bloquea evento y grupo, valida capacidad,
+persiste título, invitados nominales, boletos extra, orden y contactos, y crea el primer enlace dentro de una
 única transacción. Los conteos del
 evento nunca se leen de esta columna: siempre se derivan de `invitees`.
 
@@ -54,7 +55,8 @@ evento nunca se leen de esta columna: siempre se derivan de `invitees`.
 - Instantes (`starts_at`, `ends_at`, `responded_at`) usan `timestamptz` y se transmiten en UTC.
 - Cada evento conserva una zona IANA en `events.timezone`; el cliente muestra fechas con
   `Intl.DateTimeFormat` y esa zona explícita.
-- Los controles `datetime-local` se convierten a ISO antes de llamar RPC. En esta beta se asume
+- La entrada visible usa `dd/mm/aaaa` con parsing estricto y se convierte a ISO local antes de
+  llamar RPC. En esta beta se asume
   la zona del navegador al capturar; una fase posterior añadirá conversión explícita para
   organizar eventos en otra zona.
 - Fechas sin hora futuras (aniversarios o vencimientos civiles) deben usar `date`, no medianoche
@@ -103,11 +105,23 @@ hashes, respuestas ni eventos RSVP existentes.
 
 ## Persistencia de administración
 
-La interfaz no encadena formularios independientes para un mismo grupo. Construye un borrador
-local y llama una vez a `save_guest_party_v3`. La RPC sólo devuelve éxito después del commit; un
+La interfaz no encadena formularios independientes para una misma invitación. Construye un borrador
+local y llama una vez a `save_guest_party_v4`. La RPC sólo devuelve éxito después del commit; un
 error mantiene el modo edición y no se anuncia como guardado. `get_public_invitation` consulta
 las filas actuales, por lo que un enlace activo refleja cambios guardados sin regenerarse.
 
 El token en claro no es recuperable después de la sesión que lo creó. Esa limitación es
 intencional: la base conserva únicamente SHA-256. Si se pierde el enlace, el flujo explícito
 revoca el anterior y emite otro.
+
+## Línea de tiempo y papelera
+
+La primera actividad activa es la fuente de `events.starts_at` y `events.location_name`; esas
+columnas permanecen como proyección legada sincronizada. La agenda pública y administrativa se
+ordena por `starts_at`, por lo que no se ofrece reordenamiento manual contradictorio.
+
+Mover a Papelera establece `deleted_at` y `purge_after`, revoca enlaces y conserva datos durante
+30 días. Restaurar no reactiva tokens revocados. `purge_trashed_event` sólo permite al creador
+del evento purgar después del vencimiento, limpia dependencias y conserva una auditoría mínima
+sin PII. La ejecución automática queda preparada pero no programada: deberá invocarse mediante
+un job autenticado de `pg_cron` o una Edge Function programada en el entorno que se elija.

@@ -1,7 +1,8 @@
 # Invitame
 
 Base beta del nuevo Invitame: React + Vite en el cliente y Supabase para PostgreSQL, Auth,
-Storage, Realtime y RPC. Incluye agenda, edición transaccional de grupos/personas/+1, destinatarios separados, RSVP y ciclo de vida. El
+Storage, Realtime y RPC. Incluye línea de tiempo, edición transaccional de invitaciones,
+invitados nominales, boletos extra anónimos, contactos por invitado, RSVP y papelera. El
 prototipo Firebase permanece intacto en `master` y en el tag `eventide-prototype-2025-06-30`.
 
 ## Requisitos
@@ -58,16 +59,17 @@ No uses `supabase db push` para probar cambios: primero publica la rama y espera
 
 1. Regístrate en `/registro` e inicia sesión.
 2. Crea un evento y define capacidad.
-3. Agrega actividades a la agenda y ordénalas.
-4. Agrega personas una por una o pega una lista; activa +1 junto a quien corresponda.
-5. Agrega emails o teléfonos como destinatarios, sin convertirlos en invitados.
-6. Guarda el grupo una sola vez. La misma transacción persiste personas, orden y destinatarios,
+3. Agrega actividades a la línea de tiempo; se ordenan automáticamente por fecha y hora.
+4. Agrega invitados nominales uno por uno o pega una lista; añade tantos boletos extra como necesites.
+5. Agrega emails o teléfonos opcionales a los invitados nominales. La invitación requiere al
+   menos un canal válido en total.
+6. Guarda una sola vez. La misma transacción persiste invitados, boletos, orden y contactos,
    y crea automáticamente el primer enlace.
 7. Copia el enlace, ábrelo en una ventana privada y responde.
 8. Edita un nombre y comprueba que el mismo enlace muestra el cambio sin regenerarse.
 9. Usa “Revocar enlace y crear uno nuevo” sólo para invalidar el token anterior.
 10. Realtime actualiza estados, capacidad y porcentaje de respuesta.
-11. Elimina borradores sin historial o archiva eventos que deban conservar información.
+11. Mueve un evento a Papelera, restáuralo o, tras 30 días, elimínalo definitivamente como propietario.
 
 ## Migraciones beta
 
@@ -77,10 +79,12 @@ No uses `supabase db push` para probar cambios: primero publica la rama y espera
   métricas derivadas.
 - `202610100001_beta_ux_fixes.sql`: destinatarios, guardado atómico de grupos, enlace
   automático, reinicio auditado, fechas futuras y eliminación lógica segura.
+- `202610120001_editor_schema.sql`: boletos extra, contactos por invitado y retención de papelera.
+- `202610120002_editor_rpcs.sql`: guardado transaccional v4, línea de tiempo, papelera,
+  restauración, purga exclusiva y payload público compatible.
 
-Las dos migraciones beta de octubre 2 ya están aplicadas en `invitame-development`. La
-migración UX de octubre 10 se entrega para revisión y aplicación manual; esta rama no ejecuta
-`db push`, deployment ni cambios en Firebase.
+Las migraciones se validan desde cero en CI antes de aplicarse a `invitame-development`.
+Producción y Firebase permanecen intactos.
 
 Consulta [PRODUCT.md](./PRODUCT.md), [ARCHITECTURE.md](./ARCHITECTURE.md),
 [DESIGN.md](./DESIGN.md), [DECISIONS.md](./DECISIONS.md) y [ROADMAP.md](./ROADMAP.md).

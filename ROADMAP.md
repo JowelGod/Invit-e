@@ -8,23 +8,22 @@
 - Ciclo borrador/publicado/archivado, pruebas unitarias, pgTAP y CI.
 - Migraciones beta aplicadas al proyecto `invitame-development`.
 
-## Fase actual — Corrección funcional y UX beta
+## Completado — Editor foundation
 
-- Guardado atómico de grupo, personas, +1, orden y destinatarios.
-- Capacidad de grupo derivada; sin “usuario/contacto principal” en la interfaz.
-- Tarjetas en lectura con modo de edición explícito y un solo guardado.
-- Primer enlace automático, copia accesible y revocación separada de RSVP.
-- Reinicio de respuestas auditado, fechas futuras y eliminación lógica segura.
-- Breadcrumbs, navegación móvil y menú de cuenta.
+- Contactos por invitado nominal con guardado atómico y validación de un canal mínimo.
+- Boletos `unnamed_extra` independientes, RSVP individual y backfill compatible de +1.
+- Una sola línea de tiempo cronológica; `events.starts_at` queda como proyección legada.
+- Papelera con retención de 30 días, restauración, revocación pública y purga exclusiva auditada.
+- Modo lectura/edición y preview vivo compartido con la invitación pública.
+- Fecha visible `dd/mm/aaaa`, header sticky, menús fuera de flujo y rutas Cuenta/Papelera.
 
-## Siguiente fase recomendada — Cerrar la beta operativa
+## Siguiente fase recomendada — Hardening operativo de la beta
 
-- Revisar y aplicar manualmente `202610100001_beta_ux_fixes.sql` en desarrollo.
-- Ejecutar el recorrido manual completo contra `invitame-development`.
-- Añadir E2E de navegador para persistencia, enlace público y errores de RPC.
-- Incorporar rate limiting público, observabilidad sin PII y revisión de planes/índices con
-  volumen sintético.
-- Configurar SMTP exclusivamente en staging.
+- Automatizar E2E de navegador para creación, edición, RSVP, papelera y restauración.
+- Programar la RPC de purga con un job autenticado y alertas, primero en desarrollo/staging.
+- Incorporar rate limiting público, observabilidad sin PII y revisión de planes/índices con volumen.
+- Resolver conversión explícita entre zona del navegador y zona del evento.
+- Preparar un entorno staging aislado antes de integrar cualquier canal real.
 
 ## Después
 

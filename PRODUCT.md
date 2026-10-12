@@ -18,10 +18,10 @@ libre, plantillas definitivas, dominio personalizado o white-label.
   flexible en JSONB.
 - **Actividad:** elemento ordenado de agenda con horario, lugar, dirección y descripción.
 - **Grupo invitado:** familia, pareja o grupo que comparte una invitación y una lista ordenada de personas.
-- **Lugar:** una fila activa de `invitees`; en el flujo nuevo siempre representa a una persona
-  nominal o a su acompañante vinculado. Su cantidad deriva el total de boletos del grupo.
-- **Destinatario:** email o teléfono administrativo que podrá recibir el enlace; no consume un
-  boleto y nunca forma parte del payload público.
+- **Lugar:** una fila activa de `invitees`; representa a un invitado nominal o un boleto extra
+  anónimo independiente. Su cantidad deriva el total de boletos de la invitación.
+- **Contacto:** email o teléfono opcional de un invitado nominal. No consume otro boleto y nunca
+  forma parte del payload público. Debe existir al menos un canal válido por invitación.
 - **Enlace:** token público revocable asociado a un solo grupo.
 - **RSVP:** cambio transaccional del estado actual de uno o más lugares y registro append-only.
 
@@ -55,11 +55,11 @@ liberar o ampliar capacidad antes de aceptar ese cambio.
 
 ## Edición y enlaces
 
-El alta y la edición de un grupo son una sola operación transaccional: nombre, personas, +1,
-orden y destinatarios se confirman juntos o no cambia nada. El primer guardado crea un enlace
+El alta y la edición de una invitación son una sola operación transaccional: título, invitados,
+boletos extra, orden y contactos se confirman juntos o no cambia nada. El primer guardado crea un enlace
 automáticamente. Editar contenido no cambia el token; la invitación existente lee los datos
 vigentes. Revocar y crear un token nuevo conserva personas, RSVP e historial.
 
 “Reiniciar respuestas” es una acción distinta, explícita y auditada. Cambia el estado operativo
-a pendiente, pero no borra `rsvp_events`. Los borradores sin enlaces ni historial pueden
-eliminarse lógicamente; los demás eventos se archivan.
+a pendiente, pero no borra `rsvp_events`. “Mover a papelera” retira cualquier evento de la lista
+activa, revoca su acceso público y lo conserva 30 días antes de permitir la purga exclusiva.

@@ -46,17 +46,19 @@ derivan de filas, nunca de contadores sincronizados manualmente. Un enlace activ
 sí solo una reducción segura: sigue apuntando al grupo y su payload refleja los lugares activos;
 una respuesta o historial sí bloquea el retiro del lugar afectado.
 
-## ADR-009 — Acompañantes explícitos en el mismo grupo
+## ADR-009 — Boletos extra anónimos
 
-**Estado:** aceptada. Un acompañante es un `invitee` de tipo `plus_one` y referencia a un
-`named_guest` del mismo grupo mediante clave foránea compuesta. Consume un lugar normal y tiene
-su propio estado RSVP; no existe una entidad de boleto separada en esta fase.
+**Estado:** reemplazada. Un boleto extra es un `invitee` de tipo `unnamed_extra`, no tiene nombre,
+contacto ni vínculo obligatorio con otra persona. Cada boleto conserva fila, clave pública,
+orden y RSVP propios. Los `plus_one` anteriores se convierten de forma compatible y su etiqueta
+histórica queda preservada en un campo no público.
 
 ## ADR-010 — Agenda y retiros con historial
 
-**Estado:** aceptada. Actividades y lugares se retiran con timestamp, no se borran durante la
-operación normal. El orden es entero, único entre filas activas, y se cambia mediante RPC
-transaccional. `audit_log` registra las mutaciones administrativas.
+**Estado:** reemplazada parcialmente. Actividades y lugares se retiran con timestamp, no se
+borran durante la operación normal. La agenda se ordena cronológicamente y la primera actividad
+sincroniza la proyección legada del evento. El orden manual queda reservado a invitados y módulos.
+`audit_log` registra las mutaciones administrativas.
 
 ## ADR-011 — Ciclo de vida y plantilla
 
@@ -93,3 +95,16 @@ requiere confirmación, conserva el historial append-only y genera auditoría.
 **Estado:** aceptada. Sólo un borrador sin enlaces ni historial puede marcarse como eliminado.
 Los eventos con trazabilidad se archivan. RLS y funciones de acceso excluyen eventos eliminados
 y sus entidades hijas.
+
+## ADR-017 — Papelera con retención
+
+**Estado:** aceptada. Toda retirada visible se llama “Mover a papelera”. Conserva el evento 30
+días, revoca acceso público y permite restaurar sin reactivar enlaces. Sólo el creador puede
+purgar tras `purge_after`; la auditoría mínima sobrevive sin PII. La programación automática no
+forma parte de esta entrega y se conectará a la RPC segura.
+
+## ADR-018 — Preview compartido y módulos extensibles
+
+**Estado:** aceptada. Editor y ruta pública renderizan `InvitationTemplate`. El editor le entrega
+estado local no guardado; la plantilla normaliza un orden de módulos (`cover`, `information`,
+`schedule`, `location`, `guests`, `closing`) sin convertirse todavía en page builder.
