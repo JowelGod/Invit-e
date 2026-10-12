@@ -55,4 +55,21 @@ describe('formulario de invitados y contactos', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('RPC falló');
     expect(onSubmit).toHaveBeenCalledOnce();
   });
+
+  it('actualiza la vista previa con el borrador todavía no guardado', async () => {
+    const user = userEvent.setup();
+    render(
+      <GuestPartyForm
+        busy={false}
+        submitLabel="Guardar invitación"
+        onSubmit={vi.fn().mockResolvedValue(undefined)}
+        eventPreview={{ title: 'Boda de Maya', timezone: 'America/Mexico_City', schedule: [] }}
+      />,
+    );
+    await user.type(screen.getByLabelText('Título de la invitación'), 'Amigos cercanos');
+    await user.type(screen.getByLabelText(/Invitado 1/), 'Ivanna');
+    expect(screen.getByRole('heading', { name: 'Amigos cercanos' })).toBeInTheDocument();
+    expect(screen.getByText('Ivanna', { selector: '.preview-guests li' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Boda de Maya' })).toBeInTheDocument();
+  });
 });

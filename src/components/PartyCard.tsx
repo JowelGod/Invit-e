@@ -147,7 +147,7 @@ export function PartyCard({
                 </ul>
               </div>
               <div>
-                <h3>Destinatarios</h3>
+                <h3>Contactos</h3>
                 {party.recipients.length ? (
                   <ul className="plain-list">
                     {party.recipients.map((recipient) => (
@@ -157,7 +157,7 @@ export function PartyCard({
                     ))}
                   </ul>
                 ) : (
-                  <p className="empty-copy">Sin destinatarios.</p>
+                  <p className="empty-copy">Sin contactos.</p>
                 )}
               </div>
             </div>
