@@ -12,6 +12,7 @@ import type {
   InviteeRecord,
   PublicInvitation,
   RsvpResponse,
+  TrashedEvent,
 } from '../lib/types';
 
 function fail(message: string, error?: { message?: string } | null): never {
@@ -42,15 +43,23 @@ export async function listEvents(): Promise<EventRecord[]> {
 
 export async function createEvent(input: {
   title: string;
+  activityTitle: string;
   startsAt: string;
+  endsAt: string;
   capacity: number;
-  locationName: string;
+  venueName: string;
+  address: string;
+  description: string;
 }): Promise<string> {
-  const { data, error } = await supabase.rpc('create_event', {
+  const { data, error } = await supabase.rpc('create_event_with_activity', {
     p_title: input.title,
+    p_activity_title: input.activityTitle,
     p_starts_at: new Date(input.startsAt).toISOString(),
+    p_ends_at: input.endsAt ? new Date(input.endsAt).toISOString() : null,
     p_capacity: input.capacity,
-    p_location_name: input.locationName || null,
+    p_venue_name: input.venueName || null,
+    p_address: input.address || null,
+    p_description: input.description || null,
     p_timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/Mexico_City',
   });
   if (error || typeof data !== 'string') fail('No se pudo crear el evento.', error);
@@ -88,7 +97,7 @@ export async function getEventDetail(eventId: string): Promise<EventDetail> {
       )
       .eq('event_id', eventId)
       .is('retired_at', null)
-      .order('display_order'),
+      .order('starts_at'),
     supabase
       .from('event_schedule_items')
       .select(
@@ -171,22 +180,20 @@ export interface SaveGuestPartyInput {
   name: string;
   invitees: Array<{
     key: string;
-    display_name: string;
-    invitee_type: 'named_guest' | 'plus_one';
-    companion_of_key?: string;
+    display_name: string | null;
+    invitee_type: 'named_guest' | 'unnamed_extra';
+    contacts: Array<{ kind: 'email' | 'phone'; value: string }>;
   }>;
-  recipients: Array<{ kind: 'email' | 'phone'; value: string }>;
 }
 
 export async function saveGuestParty(
   input: SaveGuestPartyInput,
 ): Promise<{ partyId: string; link: string | null }> {
-  const { data, error } = await supabase.rpc('save_guest_party_v3', {
+  const { data, error } = await supabase.rpc('save_guest_party_v4', {
     p_event_id: input.eventId,
     p_guest_party_id: input.partyId,
     p_name: input.name,
     p_invitees: input.invitees as unknown as Json,
-    p_recipients: input.recipients as unknown as Json,
   });
   if (error || !data || typeof data !== 'object') fail('No se pudo guardar el grupo.', error);
   const result = data as { party_id?: string; token?: string | null };
@@ -208,6 +215,27 @@ export async function resetGuestPartyResponses(partyId: string): Promise<void> {
 export async function deleteDraftEvent(eventId: string): Promise<void> {
   const { error } = await supabase.rpc('delete_draft_event', { p_event_id: eventId });
   if (error) fail('No se pudo eliminar el evento.', error);
+}
+
+export async function moveEventToTrash(eventId: string): Promise<void> {
+  const { error } = await supabase.rpc('move_event_to_trash', { p_event_id: eventId });
+  if (error) fail('No se pudo mover el evento a la papelera.', error);
+}
+
+export async function listTrashedEvents(): Promise<TrashedEvent[]> {
+  const { data, error } = await supabase.rpc('get_trashed_events');
+  if (error) fail('No se pudo cargar la papelera.', error);
+  return (data || []) as unknown as TrashedEvent[];
+}
+
+export async function restoreTrashedEvent(eventId: string): Promise<void> {
+  const { error } = await supabase.rpc('restore_trashed_event', { p_event_id: eventId });
+  if (error) fail('No se pudo restaurar el evento.', error);
+}
+
+export async function purgeTrashedEvent(eventId: string): Promise<void> {
+  const { error } = await supabase.rpc('purge_trashed_event', { p_event_id: eventId });
+  if (error) fail('No se pudo eliminar definitivamente el evento.', error);
 }
 
 export async function updateEvent(input: {

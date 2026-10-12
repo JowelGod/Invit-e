@@ -13,6 +13,7 @@ type EventRow = {
   published_at: string | null;
   archived_at: string | null;
   deleted_at: string | null;
+  purge_after: string | null;
   public_content: Json;
   created_by: string;
   created_at: string;
@@ -39,7 +40,7 @@ type InviteeRow = {
   display_name: string | null;
   response: 'pending' | 'confirmed' | 'rejected';
   responded_at: string | null;
-  invitee_type: 'named_guest' | 'plus_one';
+  invitee_type: 'named_guest' | 'plus_one' | 'unnamed_extra';
   companion_of_invitee_id: string | null;
   companion_label: string | null;
   display_order: number;
@@ -76,6 +77,19 @@ type DeliveryRecipientRow = {
   updated_at: string;
 };
 
+type InviteeContactRow = {
+  id: string;
+  invitee_id: string;
+  kind: 'email' | 'phone';
+  value: string;
+  display_order: number;
+  preferred: boolean;
+  delivery_status: 'not_sent' | 'queued' | 'sent' | 'failed';
+  last_attempt_at: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 type ReadOnlyTable<Row> = {
   Row: Row;
   Insert: Partial<Row>;
@@ -91,6 +105,7 @@ export interface Database {
       invitees: ReadOnlyTable<InviteeRow>;
       event_schedule_items: ReadOnlyTable<ScheduleItemRow>;
       party_delivery_recipients: ReadOnlyTable<DeliveryRecipientRow>;
+      invitee_contacts: ReadOnlyTable<InviteeContactRow>;
     };
     Views: Record<never, never>;
     Functions: {
@@ -130,6 +145,33 @@ export interface Database {
         };
         Returns: Json;
       };
+      save_guest_party_v4: {
+        Args: {
+          p_event_id: string;
+          p_guest_party_id: string | null;
+          p_name: string;
+          p_invitees: Json;
+        };
+        Returns: Json;
+      };
+      create_event_with_activity: {
+        Args: {
+          p_title: string;
+          p_activity_title: string;
+          p_starts_at: string;
+          p_ends_at: string | null;
+          p_capacity: number;
+          p_venue_name: string | null;
+          p_address: string | null;
+          p_description: string | null;
+          p_timezone?: string;
+        };
+        Returns: string;
+      };
+      move_event_to_trash: { Args: { p_event_id: string }; Returns: undefined };
+      get_trashed_events: { Args: Record<never, never>; Returns: Json };
+      restore_trashed_event: { Args: { p_event_id: string }; Returns: undefined };
+      purge_trashed_event: { Args: { p_event_id: string }; Returns: undefined };
       get_event_delivery_state: { Args: { p_event_id: string }; Returns: Json };
       reset_guest_party_responses: { Args: { p_guest_party_id: string }; Returns: undefined };
       delete_draft_event: { Args: { p_event_id: string }; Returns: undefined };
@@ -202,7 +244,7 @@ export interface Database {
         Args: {
           p_invitee_id: string;
           p_display_name: string | null;
-          p_invitee_type: 'named_guest' | 'plus_one';
+          p_invitee_type: 'named_guest' | 'plus_one' | 'unnamed_extra';
           p_companion_of_invitee_id?: string | null;
           p_companion_label?: string | null;
         };
@@ -225,7 +267,7 @@ export interface Database {
       app_role: 'owner' | 'admin' | 'planner' | 'viewer';
       event_status: 'draft' | 'published' | 'archived';
       invitee_response: 'pending' | 'confirmed' | 'rejected';
-      invitee_kind: 'named_guest' | 'plus_one';
+      invitee_kind: 'named_guest' | 'plus_one' | 'unnamed_extra';
       delivery_recipient_kind: 'email' | 'phone';
     };
     CompositeTypes: Record<never, never>;

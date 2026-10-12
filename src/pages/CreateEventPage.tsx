@@ -2,7 +2,8 @@ import { useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 
 import { FormMessage } from '../components/FormMessage';
-import { minDateTimeLocal } from '../lib/dates';
+import { DateTimeField } from '../components/DateTimeField';
+import { validateDateRange } from '../lib/dates';
 import { formText } from '../lib/forms';
 import { createEvent } from '../services/api';
 
@@ -17,11 +18,21 @@ export function CreateEventPage() {
     setError('');
     const form = new FormData(event.currentTarget);
     try {
+      const startsAt = formText(form, 'startsAt');
+      const endsAt = formText(form, 'endsAt');
+      const dateError = validateDateRange(startsAt, endsAt);
+      if (dateError) throw new Error(dateError);
+      if (new Date(startsAt) < new Date())
+        throw new Error('La actividad debe iniciar en el futuro.');
       const eventId = await createEvent({
         title: formText(form, 'title'),
-        startsAt: formText(form, 'startsAt'),
+        activityTitle: formText(form, 'activityTitle'),
+        startsAt,
+        endsAt,
         capacity: Number(form.get('capacity')),
-        locationName: formText(form, 'locationName'),
+        venueName: formText(form, 'venueName'),
+        address: formText(form, 'address'),
+        description: formText(form, 'description'),
       });
       void navigate(`/app/eventos/${eventId}`);
     } catch (caught) {
@@ -38,25 +49,31 @@ export function CreateEventPage() {
       </Link>
       <p className="eyebrow">Nuevo evento</p>
       <h1 id="new-event-title">Datos esenciales</h1>
-      <p>La invitación visual se definirá después. Por ahora establecemos capacidad y fecha.</p>
+      <p>El evento comienza con su primera actividad dentro de una sola línea de tiempo.</p>
       <form className="panel-form" onSubmit={(event) => void handleSubmit(event)}>
         <label htmlFor="title">Nombre del evento</label>
         <input id="title" name="title" required maxLength={160} placeholder="Boda de Ana y Luis" />
-        <label htmlFor="startsAt">Fecha y hora</label>
+        <label htmlFor="activityTitle">Actividad principal</label>
         <input
-          id="startsAt"
-          name="startsAt"
-          type="datetime-local"
-          min={minDateTimeLocal()}
+          id="activityTitle"
+          name="activityTitle"
           required
+          maxLength={160}
+          placeholder="Gathering, ceremonia o fiesta"
         />
-        <label htmlFor="locationName">Lugar</label>
+        <DateTimeField name="startsAt" label="Inicio" required />
+        <DateTimeField name="endsAt" label="Fin opcional" />
+        <label htmlFor="venueName">Lugar</label>
         <input
-          id="locationName"
-          name="locationName"
+          id="venueName"
+          name="venueName"
           maxLength={200}
           placeholder="Puede definirse después"
         />
+        <label htmlFor="address">Dirección</label>
+        <input id="address" name="address" maxLength={500} />
+        <label htmlFor="description">Descripción opcional</label>
+        <textarea id="description" name="description" maxLength={2000} />
         <label htmlFor="capacity">Capacidad total</label>
         <input
           id="capacity"

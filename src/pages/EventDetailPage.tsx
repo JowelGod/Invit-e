@@ -7,13 +7,13 @@ import { GuestPartyForm, type PartyFormValue } from '../components/GuestPartyFor
 import { PartyCard } from '../components/PartyCard';
 import { ScheduleManager } from '../components/ScheduleManager';
 import { filterParties, type PartyFilter } from '../lib/admin';
-import { formatDateTime, minDateTimeLocal, toDateTimeLocal } from '../lib/dates';
+import { formatDateTime } from '../lib/dates';
 import { formText } from '../lib/forms';
 import { supabase } from '../lib/supabase';
 import type { EventDetail, EventStatus } from '../lib/types';
 import {
   changeEventStatus,
-  deleteDraftEvent,
+  moveEventToTrash,
   getEventDetail,
   saveGuestParty,
   subscribeToEvent,
@@ -128,22 +128,17 @@ export function EventDetailPage() {
   }
 
   async function setStatus(status: EventStatus) {
-    if (status === 'archived' && !window.confirm('¿Archivar este evento? No se podrá reactivar.'))
-      return;
     await run(() => changeEventStatus(eventId, status), 'Estado actualizado.');
   }
 
-  async function removeDraft() {
-    if (
-      !window.confirm('¿Eliminar este borrador? Sólo es posible si no tiene enlaces ni historial.')
-    )
-      return;
+  async function moveToTrash() {
+    if (!window.confirm('¿Mover este evento a la papelera durante 30 días?')) return;
     setBusy(true);
     try {
-      await deleteDraftEvent(eventId);
+      await moveEventToTrash(eventId);
       void navigate('/app');
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'No fue posible eliminar el evento.');
+      setError(caught instanceof Error ? caught.message : 'No fue posible mover el evento.');
       setBusy(false);
     }
   }
@@ -205,21 +200,12 @@ export function EventDetailPage() {
             <details className="danger-menu">
               <summary>Más acciones</summary>
               <div>
-                {detail.event.status === 'draft' && (
-                  <button
-                    className="button--danger"
-                    disabled={busy}
-                    onClick={() => void removeDraft()}
-                  >
-                    Eliminar evento
-                  </button>
-                )}
                 <button
                   className="button--danger"
                   disabled={busy}
-                  onClick={() => void setStatus('archived')}
+                  onClick={() => void moveToTrash()}
                 >
-                  Archivar evento
+                  Mover a papelera
                 </button>
               </div>
             </details>
@@ -247,20 +233,7 @@ export function EventDetailPage() {
               <input name="title" required maxLength={160} defaultValue={detail.event.title} />
             </label>
             <div className="field-grid">
-              <label>
-                Fecha y hora
-                <input
-                  name="startsAt"
-                  type="datetime-local"
-                  min={
-                    detail.event.starts_at > new Date().toISOString()
-                      ? minDateTimeLocal()
-                      : undefined
-                  }
-                  required
-                  defaultValue={toDateTimeLocal(detail.event.starts_at)}
-                />
-              </label>
+              <input name="startsAt" type="hidden" value={detail.event.starts_at} />
               <label>
                 Capacidad total
                 <input
@@ -301,18 +274,23 @@ export function EventDetailPage() {
         <section className="content-section" aria-labelledby="parties-title">
           <div className="section-heading">
             <div>
-              <h2 id="parties-title">Grupos e invitados</h2>
-              <p>{detail.parties.length} grupos registrados.</p>
+              <h2 id="parties-title">Invitaciones e invitados</h2>
+              <p>{detail.parties.length} invitaciones registradas.</p>
             </div>
           </div>
 
           {!archived && (
             <details className="new-party-panel">
-              <summary>Agregar grupo</summary>
+              <summary>Agregar invitados</summary>
               <GuestPartyForm
                 busy={busy}
-                submitLabel="Guardar grupo"
+                submitLabel="Guardar invitación"
                 onSubmit={handleCreateParty}
+                eventPreview={{
+                  title: detail.event.title,
+                  timezone: detail.event.timezone,
+                  schedule: detail.schedule,
+                }}
               />
               {newLink && (
                 <div className="generated-link" role="status">
@@ -374,6 +352,11 @@ export function EventDetailPage() {
                 onChanged={load}
                 onError={setError}
                 onSuccess={setMessage}
+                eventPreview={{
+                  title: detail.event.title,
+                  timezone: detail.event.timezone,
+                  schedule: detail.schedule,
+                }}
               />
             ))}
           </div>

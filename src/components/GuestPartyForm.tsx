@@ -1,314 +1,379 @@
-import { useState, type FormEvent } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 
 import {
-  createDraftPerson,
-  newRecipient,
+  createDraftContact,
+  createDraftExtra,
+  createDraftInvitee,
+  moveDraftInvitee,
   parsePastedNames,
-  serializeDraftPeople,
-  type DraftPerson,
+  serializeDraftInvitees,
+  validatePartyDraft,
+  type DraftContactKind,
+  type DraftInvitee,
 } from '../lib/partyDraft';
-import type { DeliveryRecipient } from '../lib/types';
+import type { PublicScheduleItem } from '../lib/types';
+import { InvitationTemplate } from './InvitationTemplate';
 
 export interface PartyFormValue {
   name: string;
-  invitees: ReturnType<typeof serializeDraftPeople>;
-  recipients: Array<{ kind: DeliveryRecipient['kind']; value: string }>;
+  invitees: ReturnType<typeof serializeDraftInvitees>;
 }
 
 interface Props {
   initialName?: string;
-  initialPeople?: DraftPerson[];
-  initialRecipients?: DeliveryRecipient[];
+  initialInvitees?: DraftInvitee[];
   busy: boolean;
   submitLabel: string;
+  eventPreview?: { title: string; timezone: string; schedule: PublicScheduleItem[] };
   onCancel?: () => void;
   onSubmit: (value: PartyFormValue) => Promise<void>;
 }
 
 export function GuestPartyForm({
   initialName = '',
-  initialPeople = [createDraftPerson()],
-  initialRecipients = [],
+  initialInvitees = [createDraftInvitee()],
   busy,
   submitLabel,
+  eventPreview,
   onCancel,
   onSubmit,
 }: Props) {
   const [name, setName] = useState(initialName);
-  const [people, setPeople] = useState<DraftPerson[]>(initialPeople);
-  const [recipients, setRecipients] = useState<DeliveryRecipient[]>(initialRecipients);
+  const [invitees, setInvitees] = useState<DraftInvitee[]>(initialInvitees);
   const [entryMode, setEntryMode] = useState<'individual' | 'list'>('individual');
   const [pastedNames, setPastedNames] = useState('');
+  const [error, setError] = useState('');
+  const [mobilePanel, setMobilePanel] = useState<'edit' | 'preview'>('edit');
 
-  function updatePerson(index: number, patch: Partial<DraftPerson>) {
-    setPeople((current) =>
-      current.map((person, personIndex) =>
-        personIndex === index ? { ...person, ...patch } : person,
+  function updateInvitee(index: number, patch: Partial<DraftInvitee>) {
+    setInvitees((current) =>
+      current.map((invitee, inviteeIndex) =>
+        inviteeIndex === index ? { ...invitee, ...patch } : invitee,
       ),
     );
   }
 
-  function togglePlusOne(index: number) {
-    setPeople((current) =>
-      current.map((person, personIndex) =>
-        personIndex === index
+  function addContact(index: number, kind: DraftContactKind) {
+    setInvitees((current) =>
+      current.map((invitee, inviteeIndex) =>
+        inviteeIndex === index
+          ? { ...invitee, contacts: [...invitee.contacts, createDraftContact(kind)] }
+          : invitee,
+      ),
+    );
+  }
+
+  function updateContact(inviteeIndex: number, contactId: string, value: string) {
+    setInvitees((current) =>
+      current.map((invitee, index) =>
+        index === inviteeIndex
           ? {
-              ...person,
-              plusOne: person.plusOne
-                ? null
-                : {
-                    key: crypto.randomUUID(),
-                    name: person.name.trim()
-                      ? 'Acompañante de ' + person.name.trim()
-                      : 'Acompañante',
-                  },
+              ...invitee,
+              contacts: invitee.contacts.map((contact) =>
+                contact.id === contactId ? { ...contact, value } : contact,
+              ),
             }
-          : person,
+          : invitee,
       ),
     );
   }
 
-  function move(index: number, direction: -1 | 1) {
-    const nextIndex = index + direction;
-    if (nextIndex < 0 || nextIndex >= people.length) return;
-    setPeople((current) => {
-      const next = [...current];
-      const [person] = next.splice(index, 1);
-      next.splice(nextIndex, 0, person);
-      return next;
-    });
+  function removeContact(inviteeIndex: number, contactId: string) {
+    setInvitees((current) =>
+      current.map((invitee, index) =>
+        index === inviteeIndex
+          ? {
+              ...invitee,
+              contacts: invitee.contacts.filter((contact) => contact.id !== contactId),
+            }
+          : invitee,
+      ),
+    );
   }
 
   function applyList() {
     const parsed = parsePastedNames(pastedNames);
-    if (parsed.length) {
-      setPeople(parsed);
-      setEntryMode('individual');
-    }
+    if (!parsed.length) return;
+    setInvitees((current) => [
+      ...current.filter((item) => item.type === 'unnamed_extra'),
+      ...parsed,
+    ]);
+    setEntryMode('individual');
   }
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const invitees = serializeDraftPeople(people);
-    if (!name.trim() || invitees.some((invitee) => !invitee.display_name)) return;
-    await onSubmit({
-      name: name.trim(),
-      invitees,
-      recipients: recipients
-        .map(({ kind, value }) => ({ kind, value: value.trim() }))
-        .filter((recipient) => recipient.value),
-    });
+    const validation = validatePartyDraft(name, invitees);
+    if (validation) {
+      setError(validation);
+      return;
+    }
+    setError('');
+    try {
+      await onSubmit({ name: name.trim(), invitees: serializeDraftInvitees(invitees) });
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'No fue posible guardar la invitación.');
+    }
   }
 
-  const ticketCount = serializeDraftPeople(people).length;
+  const extraLabels = useMemo(() => {
+    let number = 0;
+    return invitees.map((invitee) => (invitee.type === 'unnamed_extra' ? ++number : 0));
+  }, [invitees]);
+  const previewPlaces = invitees.map((invitee, index) => ({
+    key: invitee.key,
+    name:
+      invitee.type === 'named_guest'
+        ? invitee.name || `Invitado ${index + 1}`
+        : `Invitado adicional ${extraLabels[index]}`,
+    type: invitee.type,
+  }));
 
   return (
-    <form className="stack-form party-form" onSubmit={(event) => void submit(event)}>
-      <label>
-        Familia, pareja o grupo
-        <input
-          value={name}
-          required
-          maxLength={160}
-          placeholder="Familia García"
-          onChange={(event) => setName(event.target.value)}
-        />
-      </label>
-
-      <fieldset className="segmented-field">
-        <legend>Cómo agregar personas</legend>
-        <div className="segmented-control">
+    <div className="party-editor-shell">
+      {eventPreview && (
+        <div className="editor-mobile-tabs" role="tablist" aria-label="Editor de invitación">
           <button
-            className={entryMode === 'individual' ? '' : 'button--secondary'}
             type="button"
-            aria-pressed={entryMode === 'individual'}
-            onClick={() => setEntryMode('individual')}
+            aria-selected={mobilePanel === 'edit'}
+            onClick={() => setMobilePanel('edit')}
           >
-            Agregar uno por uno
+            Editar
           </button>
           <button
-            className={entryMode === 'list' ? '' : 'button--secondary'}
             type="button"
-            aria-pressed={entryMode === 'list'}
-            onClick={() => setEntryMode('list')}
+            aria-selected={mobilePanel === 'preview'}
+            onClick={() => setMobilePanel('preview')}
           >
-            Pegar una lista
+            Vista previa
           </button>
-        </div>
-      </fieldset>
-
-      {entryMode === 'list' ? (
-        <div className="stack-form">
-          <label>
-            Un nombre por línea
-            <textarea
-              rows={6}
-              value={pastedNames}
-              placeholder={'Maya\nIvanna\nMau\nSharon'}
-              onChange={(event) => setPastedNames(event.target.value)}
-            />
-          </label>
-          <button className="button--secondary" type="button" onClick={applyList}>
-            Usar esta lista
-          </button>
-        </div>
-      ) : (
-        <div className="people-builder">
-          {people.map((person, index) => (
-            <div className="person-row" key={person.key}>
-              <label>
-                Persona {index + 1}
-                <input
-                  value={person.name}
-                  required
-                  maxLength={120}
-                  placeholder="Nombre"
-                  onChange={(event) => updatePerson(index, { name: event.target.value })}
-                />
-              </label>
-              <label className="plus-one-toggle">
-                <input
-                  type="checkbox"
-                  checked={Boolean(person.plusOne)}
-                  onChange={() => togglePlusOne(index)}
-                />
-                +1
-              </label>
-              {person.plusOne && (
-                <label className="plus-one-name">
-                  Nombre del +1
-                  <input
-                    value={person.plusOne.name}
-                    required
-                    maxLength={120}
-                    onChange={(event) =>
-                      updatePerson(index, {
-                        plusOne: person.plusOne
-                          ? { ...person.plusOne, name: event.target.value }
-                          : null,
-                      })
-                    }
-                  />
-                </label>
-              )}
-              <div className="button-row compact-actions">
-                <button
-                  className="button--secondary"
-                  type="button"
-                  disabled={index === 0}
-                  aria-label={'Subir a ' + (person.name || 'persona ' + (index + 1))}
-                  onClick={() => move(index, -1)}
-                >
-                  ↑
-                </button>
-                <button
-                  className="button--secondary"
-                  type="button"
-                  disabled={index === people.length - 1}
-                  aria-label={'Bajar a ' + (person.name || 'persona ' + (index + 1))}
-                  onClick={() => move(index, 1)}
-                >
-                  ↓
-                </button>
-                <button
-                  className="text-button danger-text"
-                  type="button"
-                  disabled={people.length === 1}
-                  onClick={() =>
-                    setPeople((current) =>
-                      current.filter((_, personIndex) => personIndex !== index),
-                    )
-                  }
-                >
-                  Eliminar invitado
-                </button>
-              </div>
-            </div>
-          ))}
-          <button
-            className="button--secondary"
-            type="button"
-            onClick={() => setPeople((current) => [...current, createDraftPerson()])}
-          >
-            Agregar persona
-          </button>
-          <p className="form-hint">{ticketCount} boletos, derivados de personas y acompañantes.</p>
         </div>
       )}
-
-      <fieldset className="recipient-editor">
-        <legend>Destinatarios opcionales</legend>
-        <p className="form-hint">
-          Reciben el enlace; no consumen boletos y nunca se muestran públicamente.
-        </p>
-        {recipients.map((recipient, index) => (
-          <div className="recipient-row" key={recipient.id}>
-            <select
-              aria-label={'Tipo de destinatario ' + (index + 1)}
-              value={recipient.kind}
-              onChange={(event) =>
-                setRecipients((current) =>
-                  current.map((item, itemIndex) =>
-                    itemIndex === index
-                      ? { ...item, kind: event.target.value as DeliveryRecipient['kind'] }
-                      : item,
-                  ),
-                )
-              }
-            >
-              <option value="email">Email</option>
-              <option value="phone">Teléfono</option>
-            </select>
+      <div className="party-editor-layout">
+        <form
+          className={`stack-form party-form ${mobilePanel === 'preview' ? 'mobile-hidden' : ''}`}
+          onSubmit={(event) => void submit(event)}
+        >
+          <label>
+            Título de la invitación
             <input
-              aria-label={'Destinatario ' + (index + 1)}
-              type={recipient.kind === 'email' ? 'email' : 'tel'}
-              value={recipient.value}
-              maxLength={254}
-              onChange={(event) =>
-                setRecipients((current) =>
-                  current.map((item, itemIndex) =>
-                    itemIndex === index ? { ...item, value: event.target.value } : item,
-                  ),
-                )
-              }
+              value={name}
+              required
+              maxLength={160}
+              placeholder="Familia García, Mario y Sofi o Compañeros de clase"
+              onChange={(event) => setName(event.target.value)}
             />
-            <button
-              className="text-button danger-text"
-              type="button"
-              onClick={() =>
-                setRecipients((current) => current.filter((_, itemIndex) => itemIndex !== index))
-              }
-            >
-              Quitar
-            </button>
-          </div>
-        ))}
-        <div className="button-row">
-          <button
-            className="button--secondary"
-            type="button"
-            onClick={() => setRecipients((current) => [...current, newRecipient('email')])}
-          >
-            Agregar email
-          </button>
-          <button
-            className="button--secondary"
-            type="button"
-            onClick={() => setRecipients((current) => [...current, newRecipient('phone')])}
-          >
-            Agregar teléfono
-          </button>
-        </div>
-      </fieldset>
+          </label>
 
-      <div className="button-row">
-        <button disabled={busy}>{busy ? 'Guardando…' : submitLabel}</button>
-        {onCancel && (
-          <button className="button--secondary" type="button" disabled={busy} onClick={onCancel}>
-            Cancelar
-          </button>
+          <fieldset className="segmented-field">
+            <legend>Cómo agregar invitados</legend>
+            <div className="segmented-control">
+              <button
+                className={entryMode === 'individual' ? '' : 'button--secondary'}
+                type="button"
+                aria-pressed={entryMode === 'individual'}
+                onClick={() => setEntryMode('individual')}
+              >
+                Uno por uno
+              </button>
+              <button
+                className={entryMode === 'list' ? '' : 'button--secondary'}
+                type="button"
+                aria-pressed={entryMode === 'list'}
+                onClick={() => setEntryMode('list')}
+              >
+                Pegar una lista
+              </button>
+            </div>
+          </fieldset>
+
+          {entryMode === 'list' ? (
+            <div className="stack-form">
+              <label>
+                Un nombre por línea
+                <textarea
+                  rows={6}
+                  value={pastedNames}
+                  onChange={(event) => setPastedNames(event.target.value)}
+                />
+              </label>
+              <button className="button--secondary" type="button" onClick={applyList}>
+                Usar esta lista
+              </button>
+            </div>
+          ) : (
+            <div className="people-builder">
+              {invitees.map((invitee, index) => (
+                <article className="person-row" key={invitee.key}>
+                  {invitee.type === 'named_guest' ? (
+                    <>
+                      <label>
+                        Invitado{' '}
+                        {
+                          invitees.slice(0, index + 1).filter((item) => item.type === 'named_guest')
+                            .length
+                        }
+                        <input
+                          value={invitee.name}
+                          required
+                          maxLength={120}
+                          placeholder="Nombre"
+                          onChange={(event) => updateInvitee(index, { name: event.target.value })}
+                        />
+                      </label>
+                      <div className="invitee-contacts">
+                        {invitee.contacts.map((contact) => (
+                          <div className="recipient-row" key={contact.id}>
+                            <label>
+                              {contact.kind === 'email' ? 'Email' : 'Teléfono'}
+                              <input
+                                aria-label={`${contact.kind === 'email' ? 'Email' : 'Teléfono'} de ${invitee.name || `invitado ${index + 1}`}`}
+                                type={contact.kind === 'email' ? 'email' : 'tel'}
+                                value={contact.value}
+                                maxLength={254}
+                                onChange={(event) =>
+                                  updateContact(index, contact.id, event.target.value)
+                                }
+                              />
+                            </label>
+                            <button
+                              className="text-button danger-text"
+                              type="button"
+                              onClick={() => removeContact(index, contact.id)}
+                            >
+                              Quitar
+                            </button>
+                          </div>
+                        ))}
+                        <div className="button-row compact-actions">
+                          <button
+                            className="button--secondary"
+                            type="button"
+                            onClick={() => addContact(index, 'email')}
+                          >
+                            + Email
+                          </button>
+                          <button
+                            className="button--secondary"
+                            type="button"
+                            onClick={() => addContact(index, 'phone')}
+                          >
+                            + Teléfono
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="extra-ticket-label">
+                      <strong>Invitado adicional {extraLabels[index]}</strong>
+                      <small>Boleto anónimo, sin nombre ni contacto.</small>
+                    </div>
+                  )}
+                  <div className="button-row compact-actions ticket-actions">
+                    {invitees.length > 1 && (
+                      <>
+                        <button
+                          className="button--secondary"
+                          type="button"
+                          disabled={index === 0}
+                          aria-label={`Subir boleto ${index + 1}`}
+                          onClick={() =>
+                            setInvitees((current) => moveDraftInvitee(current, index, -1))
+                          }
+                        >
+                          ↑
+                        </button>
+                        <button
+                          className="button--secondary"
+                          type="button"
+                          disabled={index === invitees.length - 1}
+                          aria-label={`Bajar boleto ${index + 1}`}
+                          onClick={() =>
+                            setInvitees((current) => moveDraftInvitee(current, index, 1))
+                          }
+                        >
+                          ↓
+                        </button>
+                      </>
+                    )}
+                    <button
+                      className="text-button danger-text"
+                      type="button"
+                      disabled={invitees.length === 1}
+                      onClick={() =>
+                        setInvitees((current) =>
+                          current.filter((_, itemIndex) => itemIndex !== index),
+                        )
+                      }
+                    >
+                      Quitar boleto
+                    </button>
+                  </div>
+                </article>
+              ))}
+              <div className="button-row">
+                <button
+                  className="button--secondary"
+                  type="button"
+                  onClick={() => setInvitees((current) => [...current, createDraftInvitee()])}
+                >
+                  Agregar invitado
+                </button>
+                <button
+                  className="button--secondary"
+                  type="button"
+                  onClick={() => setInvitees((current) => [...current, createDraftExtra()])}
+                >
+                  Agregar boleto extra
+                </button>
+              </div>
+              <p className="form-hint">
+                <strong>{invitees.length} boletos:</strong>{' '}
+                {invitees.filter((item) => item.type === 'named_guest').length} nominales y{' '}
+                {invitees.filter((item) => item.type === 'unnamed_extra').length} extra.
+              </p>
+            </div>
+          )}
+
+          <p className="form-hint">
+            La invitación podrá enviarse a los correos o teléfonos configurados. También podrás
+            copiar y compartir el enlace manualmente.
+          </p>
+          {error && (
+            <p className="message message--error" role="alert">
+              {error}
+            </p>
+          )}
+          <div className="button-row">
+            <button disabled={busy}>{busy ? 'Guardando…' : submitLabel}</button>
+            {onCancel && (
+              <button
+                className="button--secondary"
+                type="button"
+                disabled={busy}
+                onClick={onCancel}
+              >
+                Cancelar
+              </button>
+            )}
+          </div>
+        </form>
+
+        {eventPreview && (
+          <aside
+            className={`editor-preview ${mobilePanel === 'edit' ? 'mobile-preview-hidden' : ''}`}
+            aria-label="Vista previa en vivo"
+          >
+            <InvitationTemplate
+              title={eventPreview.title}
+              timezone={eventPreview.timezone}
+              schedule={eventPreview.schedule}
+              partyTitle={name || 'Título de la invitación'}
+              places={previewPlaces}
+            />
+          </aside>
         )}
       </div>
-    </form>
+    </div>
   );
 }

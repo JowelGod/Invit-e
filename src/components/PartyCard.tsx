@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
-import { buildDraftPeople } from '../lib/partyDraft';
-import type { GuestPartyRecord } from '../lib/types';
+import { buildDraftInvitees } from '../lib/partyDraft';
+import type { GuestPartyRecord, PublicScheduleItem } from '../lib/types';
 import { generateInvitationLink, resetGuestPartyResponses, saveGuestParty } from '../services/api';
 import { GuestPartyForm, type PartyFormValue } from './GuestPartyForm';
 import { StatusBadge } from './StatusBadge';
@@ -13,9 +13,18 @@ interface Props {
   onChanged: () => Promise<void>;
   onError: (message: string) => void;
   onSuccess: (message: string) => void;
+  eventPreview: { title: string; timezone: string; schedule: PublicScheduleItem[] };
 }
 
-export function PartyCard({ eventId, party, disabled, onChanged, onError, onSuccess }: Props) {
+export function PartyCard({
+  eventId,
+  party,
+  disabled,
+  onChanged,
+  onError,
+  onSuccess,
+  eventPreview,
+}: Props) {
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(false);
   const [generatedLink, setGeneratedLink] = useState('');
@@ -106,10 +115,10 @@ export function PartyCard({ eventId, party, disabled, onChanged, onError, onSucc
         {editing ? (
           <GuestPartyForm
             initialName={party.name}
-            initialPeople={buildDraftPeople(party.invitees)}
-            initialRecipients={party.recipients}
+            initialInvitees={buildDraftInvitees(party.invitees, party.recipients)}
             busy={busy}
             submitLabel="Guardar cambios"
+            eventPreview={eventPreview}
             onCancel={() => setEditing(false)}
             onSubmit={save}
           />
@@ -122,8 +131,15 @@ export function PartyCard({ eventId, party, disabled, onChanged, onError, onSucc
                   {party.invitees.map((invitee) => (
                     <li key={invitee.id}>
                       <span>
-                        {invitee.display_name || invitee.companion_label || 'Sin nombre'}
-                        {invitee.invitee_type === 'plus_one' ? ' · +1' : ''}
+                        {invitee.invitee_type === 'named_guest'
+                          ? invitee.display_name
+                          : `Invitado adicional ${
+                              party.invitees.filter(
+                                (item) =>
+                                  item.invitee_type !== 'named_guest' &&
+                                  item.display_order <= invitee.display_order,
+                              ).length
+                            }`}
                       </span>
                       <StatusBadge status={invitee.response} />
                     </li>

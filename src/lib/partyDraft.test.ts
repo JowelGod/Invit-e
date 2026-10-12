@@ -1,58 +1,70 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 
-import { buildDraftPeople, parsePastedNames, serializeDraftPeople } from './partyDraft';
+import {
+  buildDraftInvitees,
+  createDraftExtra,
+  createDraftInvitee,
+  moveDraftInvitee,
+  serializeDraftInvitees,
+  validatePartyDraft,
+} from './partyDraft';
 import type { InviteeRecord } from './types';
 
-vi.stubGlobal('crypto', { randomUUID: () => '90000000-0000-4000-8000-000000000009' });
+const base = {
+  response: 'pending' as const,
+  responded_at: null,
+  companion_of_invitee_id: null,
+  companion_label: null,
+  retired_at: null,
+  created_at: '2026-01-01T00:00:00Z',
+};
 
-describe('party draft', () => {
-  it('pairs a plus one with its named guest and preserves public keys', () => {
+describe('borrador de invitación', () => {
+  it('convierte +1 anteriores a boletos extra y conserva llaves y contactos', () => {
     const invitees: InviteeRecord[] = [
       {
+        ...base,
         id: 'maya-id',
         public_key: 'maya-key',
         display_name: 'Maya',
-        response: 'pending',
-        responded_at: null,
         invitee_type: 'named_guest',
-        companion_of_invitee_id: null,
-        companion_label: null,
         display_order: 0,
-        retired_at: null,
-        created_at: '2026-01-01',
       },
       {
-        id: 'plus-id',
-        public_key: 'plus-key',
-        display_name: 'Acompañante de Maya',
-        response: 'pending',
-        responded_at: null,
+        ...base,
+        id: 'extra-id',
+        public_key: 'extra-key',
+        display_name: null,
         invitee_type: 'plus_one',
-        companion_of_invitee_id: 'maya-id',
-        companion_label: 'Acompañante de Maya',
         display_order: 1,
-        retired_at: null,
-        created_at: '2026-01-01',
       },
     ];
-
-    expect(serializeDraftPeople(buildDraftPeople(invitees))).toEqual([
-      { key: 'maya-key', display_name: 'Maya', invitee_type: 'named_guest' },
+    const draft = buildDraftInvitees(invitees, [
+      { id: 'contact-id', invitee_id: 'maya-id', kind: 'email', value: 'maya@example.test' },
+    ]);
+    expect(serializeDraftInvitees(draft)).toEqual([
       {
-        key: 'plus-key',
-        display_name: 'Acompañante de Maya',
-        invitee_type: 'plus_one',
-        companion_of_key: 'maya-key',
+        key: 'maya-key',
+        display_name: 'Maya',
+        invitee_type: 'named_guest',
+        contacts: [{ kind: 'email', value: 'maya@example.test' }],
+      },
+      {
+        key: 'extra-key',
+        display_name: null,
+        invitee_type: 'unnamed_extra',
+        contacts: [],
       },
     ]);
   });
 
-  it('parses pasted names without creating empty people', () => {
-    expect(parsePastedNames('Maya\n\nIvanna, Mau; Sharon').map((person) => person.name)).toEqual([
-      'Maya',
-      'Ivanna',
-      'Mau',
-      'Sharon',
-    ]);
+  it('exige un canal válido, admite varios extras y conserva el orden', () => {
+    const maya = createDraftInvitee('Maya');
+    maya.contacts = [{ id: 'email', kind: 'email', value: 'maya@example.test' }];
+    const draft = [maya, createDraftExtra(), createDraftExtra(), createDraftExtra()];
+    expect(validatePartyDraft('Amigos', draft)).toBeNull();
+    expect(serializeDraftInvitees(draft)).toHaveLength(4);
+    expect(moveDraftInvitee(draft, 3, -1)[2].key).toBe(draft[3].key);
+    expect(validatePartyDraft('Amigos', [{ ...maya, contacts: [] }])).toMatch(/correo o teléfono/);
   });
 });

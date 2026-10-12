@@ -1,6 +1,6 @@
 export type AppRole = 'owner' | 'admin' | 'planner' | 'viewer';
 export type InviteeStatus = 'pending' | 'confirmed' | 'rejected';
-export type InviteeKind = 'named_guest' | 'plus_one';
+export type InviteeKind = 'named_guest' | 'plus_one' | 'unnamed_extra';
 export type EventStatus = 'draft' | 'published' | 'archived';
 
 export interface CapacitySummary {
@@ -26,6 +26,7 @@ export interface EventRecord {
   published_at: string | null;
   archived_at: string | null;
   deleted_at: string | null;
+  purge_after?: string | null;
   summary?: CapacitySummary;
 }
 
@@ -45,8 +46,20 @@ export interface InviteeRecord {
 
 export interface DeliveryRecipient {
   id: string;
+  invitee_id?: string;
   kind: 'email' | 'phone';
   value: string;
+  preferred?: boolean;
+  delivery_status?: 'not_sent' | 'queued' | 'sent' | 'failed';
+}
+
+export interface TrashedEvent {
+  id: string;
+  title: string;
+  deleted_at: string;
+  purge_after: string;
+  starts_at: string;
+  timezone: string;
 }
 
 export interface GuestPartyRecord {

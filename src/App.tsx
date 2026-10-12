@@ -4,6 +4,7 @@ import { AuthProvider } from './auth/AuthProvider';
 import { AppShell } from './components/AppShell';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { CreateEventPage } from './pages/CreateEventPage';
+import { AccountPage } from './pages/AccountPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { EventDetailPage } from './pages/EventDetailPage';
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
@@ -13,6 +14,7 @@ import { NotFoundPage } from './pages/NotFoundPage';
 import { PublicInvitationPage } from './pages/PublicInvitationPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
+import { TrashPage } from './pages/TrashPage';
 
 export function App() {
   return (
@@ -30,6 +32,8 @@ export function App() {
               <Route index element={<DashboardPage />} />
               <Route path="eventos/nuevo" element={<CreateEventPage />} />
               <Route path="eventos/:eventId" element={<EventDetailPage />} />
+              <Route path="papelera" element={<TrashPage />} />
+              <Route path="cuenta" element={<AccountPage />} />
             </Route>
           </Route>
           <Route path="*" element={<NotFoundPage />} />

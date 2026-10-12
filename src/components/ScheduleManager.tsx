@@ -1,15 +1,10 @@
 import { useState, type FormEvent } from 'react';
 
-import { formatDateTime, minDateTimeLocal, toDateTimeLocal, validateDateRange } from '../lib/dates';
+import { formatDateTime, validateDateRange } from '../lib/dates';
 import { formText } from '../lib/forms';
-import { moveItem } from '../lib/admin';
 import type { ScheduleItem } from '../lib/types';
-import {
-  createScheduleItem,
-  removeScheduleItem,
-  reorderSchedule,
-  updateScheduleItem,
-} from '../services/api';
+import { DateTimeField } from './DateTimeField';
+import { createScheduleItem, removeScheduleItem, updateScheduleItem } from '../services/api';
 
 interface Props {
   eventId: string;
@@ -55,23 +50,6 @@ export function ScheduleManager({ eventId, timezone, items, disabled, onChanged,
     }
   }
 
-  async function move(index: number, direction: -1 | 1) {
-    const reordered = moveItem(items, index, index + direction);
-    if (reordered === items) return;
-    setBusy(true);
-    try {
-      await reorderSchedule(
-        eventId,
-        reordered.map((item) => item.id),
-      );
-      await onChanged();
-    } catch (caught) {
-      onError(caught instanceof Error ? caught.message : 'No fue posible reordenar la agenda.');
-    } finally {
-      setBusy(false);
-    }
-  }
-
   async function remove(itemId: string) {
     if (!window.confirm('¿Retirar esta actividad de la agenda?')) return;
     setBusy(true);
@@ -87,68 +65,55 @@ export function ScheduleManager({ eventId, timezone, items, disabled, onChanged,
 
   return (
     <section className="content-section" aria-labelledby="schedule-title">
-      <h2 id="schedule-title">Agenda</h2>
-      {items.length === 0 && <p className="empty-copy">Aún no hay actividades.</p>}
-      <div className="schedule-list">
-        {items.map((item, index) => (
-          <article className="schedule-item" key={item.id}>
-            {editing === item.id ? (
-              <ScheduleForm
-                item={item}
-                busy={busy}
-                onCancel={() => setEditing(null)}
-                onSubmit={(event) => void submit(event, item.id)}
-              />
-            ) : (
-              <>
-                <div>
-                  <h3>{item.title}</h3>
-                  <p>{formatDateTime(item.starts_at, timezone)}</p>
-                  {(item.venue_name || item.address) && (
-                    <p>{[item.venue_name, item.address].filter(Boolean).join(' · ')}</p>
-                  )}
-                  {item.description && <p>{item.description}</p>}
-                </div>
-                <div className="button-row compact-actions">
-                  <button
-                    className="button--secondary"
-                    type="button"
-                    disabled={disabled || busy || index === 0}
-                    aria-label={`Subir ${item.title}`}
-                    onClick={() => void move(index, -1)}
-                  >
-                    ↑
-                  </button>
-                  <button
-                    className="button--secondary"
-                    type="button"
-                    disabled={disabled || busy || index === items.length - 1}
-                    aria-label={`Bajar ${item.title}`}
-                    onClick={() => void move(index, 1)}
-                  >
-                    ↓
-                  </button>
-                  <button
-                    className="button--secondary"
-                    type="button"
-                    disabled={disabled || busy}
-                    onClick={() => setEditing(item.id)}
-                  >
-                    Editar
-                  </button>
-                  <button
-                    className="button--danger"
-                    type="button"
-                    disabled={disabled || busy}
-                    onClick={() => void remove(item.id)}
-                  >
-                    Retirar
-                  </button>
-                </div>
-              </>
-            )}
-          </article>
-        ))}
+      <h2 id="schedule-title">Línea de tiempo</h2>
+      <p>La actividad principal y las adicionales se ordenan automáticamente por fecha y hora.</p>
+      {items.length === 0 && (
+        <p className="empty-copy">El evento necesita una actividad principal.</p>
+      )}
+      <div className="schedule-list timeline">
+        {[...items]
+          .sort((a, b) => a.starts_at.localeCompare(b.starts_at))
+          .map((item) => (
+            <article className="schedule-item" key={item.id}>
+              {editing === item.id ? (
+                <ScheduleForm
+                  item={item}
+                  busy={busy}
+                  onCancel={() => setEditing(null)}
+                  onSubmit={(event) => void submit(event, item.id)}
+                />
+              ) : (
+                <>
+                  <div>
+                    <h3>{item.title}</h3>
+                    <p>{formatDateTime(item.starts_at, timezone)}</p>
+                    {(item.venue_name || item.address) && (
+                      <p>{[item.venue_name, item.address].filter(Boolean).join(' · ')}</p>
+                    )}
+                    {item.description && <p>{item.description}</p>}
+                  </div>
+                  <div className="button-row compact-actions">
+                    <button
+                      className="button--secondary"
+                      type="button"
+                      disabled={disabled || busy}
+                      onClick={() => setEditing(item.id)}
+                    >
+                      Editar
+                    </button>
+                    <button
+                      className="button--danger"
+                      type="button"
+                      disabled={disabled || busy}
+                      onClick={() => void remove(item.id)}
+                    >
+                      Retirar
+                    </button>
+                  </div>
+                </>
+              )}
+            </article>
+          ))}
       </div>
       {!disabled && (
         <details className="inline-form">
@@ -177,26 +142,8 @@ function ScheduleForm({
         Actividad
         <input name="title" required maxLength={160} defaultValue={item?.title} />
       </label>
-      <div className="field-grid">
-        <label>
-          Inicio
-          <input
-            name="startsAt"
-            type="datetime-local"
-            required
-            min={item ? undefined : minDateTimeLocal()}
-            defaultValue={item ? toDateTimeLocal(item.starts_at) : ''}
-          />
-        </label>
-        <label>
-          Fin (opcional)
-          <input
-            name="endsAt"
-            type="datetime-local"
-            defaultValue={item?.ends_at ? toDateTimeLocal(item.ends_at) : ''}
-          />
-        </label>
-      </div>
+      <DateTimeField name="startsAt" label="Inicio" required defaultValue={item?.starts_at} />
+      <DateTimeField name="endsAt" label="Fin opcional" defaultValue={item?.ends_at || undefined} />
       <label>
         Lugar
         <input name="venueName" maxLength={200} defaultValue={item?.venue_name || ''} />

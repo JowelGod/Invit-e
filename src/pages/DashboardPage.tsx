@@ -4,12 +4,27 @@ import { Link } from 'react-router-dom';
 import { CapacityGrid } from '../components/CapacityGrid';
 import { formatDateTime } from '../lib/dates';
 import type { EventRecord } from '../lib/types';
-import { listEvents } from '../services/api';
+import { listEvents, moveEventToTrash } from '../services/api';
 
 export function DashboardPage() {
   const [events, setEvents] = useState<EventRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [busy, setBusy] = useState('');
+
+  async function moveToTrash(event: EventRecord) {
+    if (!window.confirm(`¿Mover “${event.title}” a la papelera durante 30 días?`)) return;
+    setBusy(event.id);
+    setError('');
+    try {
+      await moveEventToTrash(event.id);
+      setEvents((current) => current.filter((item) => item.id !== event.id));
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'No se pudo mover a la papelera.');
+    } finally {
+      setBusy('');
+    }
+  }
 
   useEffect(() => {
     let active = true;
@@ -33,6 +48,9 @@ export function DashboardPage() {
         </div>
         <Link className="button" to="/app/eventos/nuevo">
           Crear evento
+        </Link>
+        <Link className="button button--secondary" to="/app/papelera">
+          Papelera
         </Link>
       </div>
       {loading && (
@@ -72,6 +90,16 @@ export function DashboardPage() {
               </p>
             </div>
             {event.summary && <CapacityGrid summary={event.summary} />}
+            <button
+              className="trash-icon"
+              type="button"
+              disabled={busy === event.id}
+              aria-label={`Mover ${event.title} a papelera`}
+              title="Mover a papelera"
+              onClick={() => void moveToTrash(event)}
+            >
+              🗑
+            </button>
           </article>
         ))}
       </div>

@@ -27,3 +27,34 @@ export function validateDateRange(startsAt: string, endsAt?: string): string | n
   }
   return null;
 }
+
+export function parseDisplayDate(
+  value: string,
+): { year: number; month: number; day: number } | null {
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(value.trim());
+  if (!match) return null;
+  const day = Number(match[1]);
+  const month = Number(match[2]);
+  const year = Number(match[3]);
+  const date = new Date(year, month - 1, day);
+  if (date.getFullYear() !== year || date.getMonth() !== month - 1 || date.getDate() !== day) {
+    return null;
+  }
+  return { year, month, day };
+}
+
+export function combineDisplayDateTime(dateValue: string, timeValue: string): string {
+  const parsed = parseDisplayDate(dateValue);
+  if (!parsed || !/^([01]\d|2[0-3]):[0-5]\d$/.test(timeValue)) return '';
+  const month = String(parsed.month).padStart(2, '0');
+  const day = String(parsed.day).padStart(2, '0');
+  return `${parsed.year}-${month}-${day}T${timeValue}`;
+}
+
+export function splitDateTimeLocal(value?: string): { date: string; time: string } {
+  if (!value) return { date: '', time: '' };
+  const local = toDateTimeLocal(value);
+  const [isoDate, time = ''] = local.split('T');
+  const [year, month, day] = isoDate.split('-');
+  return { date: `${day}/${month}/${year}`, time };
+}
