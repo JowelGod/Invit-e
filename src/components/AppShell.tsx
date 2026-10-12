@@ -9,6 +9,7 @@ export function AppShell() {
   const location = useLocation();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const initial = (user?.email?.trim().charAt(0) || 'U').toUpperCase();
 
   useEffect(() => {
@@ -16,7 +17,10 @@ export function AppShell() {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) setOpen(false);
     }
     function closeOnEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') setOpen(false);
+      if (event.key === 'Escape') {
+        setOpen(false);
+        triggerRef.current?.focus();
+      }
     }
     document.addEventListener('mousedown', closeOnOutside);
     document.addEventListener('keydown', closeOnEscape);
@@ -55,17 +59,19 @@ export function AppShell() {
           </NavLink>
           <div className="account-menu" ref={menuRef}>
             <button
+              ref={triggerRef}
               className="avatar-button"
               type="button"
               aria-label="Abrir menú de perfil"
               aria-haspopup="menu"
               aria-expanded={open}
+              aria-controls="profile-menu"
               onClick={() => setOpen((value) => !value)}
             >
               {initial}
             </button>
             {open && (
-              <div className="account-popover" role="menu">
+              <div id="profile-menu" className="account-popover" role="menu">
                 <NavLink role="menuitem" to="/app/cuenta" onClick={() => setOpen(false)}>
                   Cuenta
                 </NavLink>

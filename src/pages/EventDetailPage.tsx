@@ -32,10 +32,15 @@ export function EventDetailPage() {
   const [filter, setFilter] = useState<PartyFilter>('all');
   const [newLink, setNewLink] = useState('');
   const [copied, setCopied] = useState(false);
+  const [previewTitle, setPreviewTitle] = useState('');
+  const [previewSchedule, setPreviewSchedule] = useState<EventDetail['schedule']>([]);
 
   const load = useCallback(async () => {
     try {
-      setDetail(await getEventDetail(eventId));
+      const result = await getEventDetail(eventId);
+      setDetail(result);
+      setPreviewTitle(result.event.title);
+      setPreviewSchedule(result.schedule);
       setError('');
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'No fue posible cargar el evento.');
@@ -50,6 +55,8 @@ export function EventDetailPage() {
       .then((result) => {
         if (active) {
           setDetail(result);
+          setPreviewTitle(result.event.title);
+          setPreviewSchedule(result.schedule);
           setError('');
         }
       })
@@ -230,7 +237,13 @@ export function EventDetailPage() {
           >
             <label>
               Nombre
-              <input name="title" required maxLength={160} defaultValue={detail.event.title} />
+              <input
+                name="title"
+                required
+                maxLength={160}
+                value={previewTitle}
+                onChange={(event) => setPreviewTitle(event.target.value)}
+              />
             </label>
             <div className="field-grid">
               <input name="startsAt" type="hidden" value={detail.event.starts_at} />
@@ -269,6 +282,7 @@ export function EventDetailPage() {
           disabled={archived}
           onChanged={load}
           onError={setError}
+          onPreviewChange={setPreviewSchedule}
         />
 
         <section className="content-section" aria-labelledby="parties-title">
@@ -287,9 +301,9 @@ export function EventDetailPage() {
                 submitLabel="Guardar invitación"
                 onSubmit={handleCreateParty}
                 eventPreview={{
-                  title: detail.event.title,
+                  title: previewTitle || detail.event.title,
                   timezone: detail.event.timezone,
-                  schedule: detail.schedule,
+                  schedule: previewSchedule,
                 }}
               />
               {newLink && (
@@ -353,9 +367,9 @@ export function EventDetailPage() {
                 onError={setError}
                 onSuccess={setMessage}
                 eventPreview={{
-                  title: detail.event.title,
+                  title: previewTitle || detail.event.title,
                   timezone: detail.event.timezone,
-                  schedule: detail.schedule,
+                  schedule: previewSchedule,
                 }}
               />
             ))}

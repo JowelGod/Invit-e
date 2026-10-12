@@ -7,9 +7,16 @@ interface Props {
   label: string;
   defaultValue?: string;
   required?: boolean;
+  onValueChange?: (value: string) => void;
 }
 
-export function DateTimeField({ name, label, defaultValue, required = false }: Props) {
+export function DateTimeField({
+  name,
+  label,
+  defaultValue,
+  required = false,
+  onValueChange,
+}: Props) {
   const initial = splitDateTimeLocal(defaultValue);
   const [date, setDate] = useState(initial.date);
   const [time, setTime] = useState(initial.time);
@@ -27,7 +34,11 @@ export function DateTimeField({ name, label, defaultValue, required = false }: P
             pattern="\d{2}/\d{2}/\d{4}"
             value={date}
             required={required}
-            onChange={(event) => setDate(event.target.value)}
+            onChange={(event) => {
+              const next = event.target.value;
+              setDate(next);
+              onValueChange?.(combineDisplayDateTime(next, time));
+            }}
           />
         </label>
         <label>
@@ -37,7 +48,11 @@ export function DateTimeField({ name, label, defaultValue, required = false }: P
             type="time"
             value={time}
             required={required}
-            onChange={(event) => setTime(event.target.value)}
+            onChange={(event) => {
+              const next = event.target.value;
+              setTime(next);
+              onValueChange?.(combineDisplayDateTime(date, next));
+            }}
           />
         </label>
       </div>

@@ -20,9 +20,11 @@ describe('formulario de invitados y contactos', () => {
     await user.click(screen.getByRole('button', { name: '+ Teléfono' }));
     const phone = screen.getByLabelText('Teléfono de Maya');
     await user.type(phone, '+52 55 1234 5678');
+    await user.clear(phone);
+    await user.type(phone, '+52 55 8765 4321');
     await user.click(screen.getByRole('button', { name: 'Agregar invitado' }));
     expect(email).toHaveValue('maya.nueva@example.test');
-    expect(phone).toHaveValue('+52 55 1234 5678');
+    expect(phone).toHaveValue('+52 55 8765 4321');
     await user.click(screen.getByRole('button', { name: 'Agregar boleto extra' }));
     expect(screen.getByText('Invitado adicional 1')).toBeInTheDocument();
     expect(screen.queryByLabelText(/Email de Invitado adicional/)).not.toBeInTheDocument();
@@ -36,7 +38,7 @@ describe('formulario de invitados y contactos', () => {
       display_name: 'Maya',
       contacts: [
         { kind: 'email', value: 'maya.nueva@example.test' },
-        { kind: 'phone', value: '+52 55 1234 5678' },
+        { kind: 'phone', value: '+52 55 8765 4321' },
       ],
     });
   });
