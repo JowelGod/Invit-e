@@ -5,6 +5,7 @@ import {
   createDraftExtra,
   createDraftInvitee,
   moveDraftInvitee,
+  reorderDraftInvitees,
   serializeDraftInvitees,
   validatePartyDraft,
 } from './partyDraft';
@@ -65,6 +66,12 @@ describe('borrador de invitación', () => {
     expect(validatePartyDraft('Amigos', draft)).toBeNull();
     expect(serializeDraftInvitees(draft)).toHaveLength(4);
     expect(moveDraftInvitee(draft, 3, -1)[2].key).toBe(draft[3].key);
+    expect(reorderDraftInvitees(draft, 3, 0).map((item) => item.key)).toEqual([
+      draft[3].key,
+      draft[0].key,
+      draft[1].key,
+      draft[2].key,
+    ]);
     expect(validatePartyDraft('Amigos', [{ ...maya, contacts: [] }])).toMatch(/correo o teléfono/);
   });
 });

@@ -1,10 +1,11 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useMemo, useState, type DragEvent, type FormEvent } from 'react';
 
 import {
   createDraftContact,
   createDraftExtra,
   createDraftInvitee,
   moveDraftInvitee,
+  reorderDraftInvitees,
   parsePastedNames,
   serializeDraftInvitees,
   validatePartyDraft,
@@ -44,6 +45,7 @@ export function GuestPartyForm({
   const [pastedNames, setPastedNames] = useState('');
   const [error, setError] = useState('');
   const [mobilePanel, setMobilePanel] = useState<'edit' | 'preview'>('edit');
+  const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
 
   function updateInvitee(index: number, patch: Partial<DraftInvitee>) {
     setInvitees((current) =>
@@ -204,7 +206,31 @@ export function GuestPartyForm({
           ) : (
             <div className="people-builder">
               {invitees.map((invitee, index) => (
-                <article className="person-row" key={invitee.key}>
+                <article
+                  className={`person-row ${draggingIndex === index ? 'is-dragging' : ''}`}
+                  key={invitee.key}
+                  draggable={invitees.length > 1}
+                  onDragStart={(event: DragEvent<HTMLElement>) => {
+                    event.dataTransfer.effectAllowed = 'move';
+                    event.dataTransfer.setData('text/plain', String(index));
+                    setDraggingIndex(index);
+                  }}
+                  onDragOver={(event) => {
+                    if (invitees.length > 1) event.preventDefault();
+                  }}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    const source = Number(event.dataTransfer.getData('text/plain'));
+                    setInvitees((current) => reorderDraftInvitees(current, source, index));
+                    setDraggingIndex(null);
+                  }}
+                  onDragEnd={() => setDraggingIndex(null)}
+                >
+                  {invitees.length > 1 && (
+                    <span className="drag-handle" aria-hidden="true" title="Arrastrar para ordenar">
+                      ⠿
+                    </span>
+                  )}
                   {invitee.type === 'named_guest' ? (
                     <>
                       <label>
