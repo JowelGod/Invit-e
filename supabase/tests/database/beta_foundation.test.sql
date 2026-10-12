@@ -187,8 +187,8 @@ select lives_ok(
 select is(
   public.get_public_invitation((select token from beta_state))
     -> 'event' -> 'schedule' -> 0 ->> 'title',
-  'Recepción',
-  'la invitación pública conserva el orden configurado'
+  'Ceremonia religiosa',
+  'la invitación pública usa el orden cronológico aunque exista orden legado'
 );
 select is(
   (
