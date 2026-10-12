@@ -169,7 +169,8 @@ select is(public.get_public_invitation((select token from editor_state)), null,
 select lives_ok(format('select public.move_event_to_trash(%L::uuid)',
   (select event_id from editor_state)), 'el evento restaurado puede volver a papelera');
 reset role;
-update public.events set purge_after = now() - interval '1 minute'
+update public.events
+set deleted_at = now() - interval '31 days', purge_after = now() - interval '1 day'
 where id = (select event_id from editor_state);
 
 set local role authenticated;

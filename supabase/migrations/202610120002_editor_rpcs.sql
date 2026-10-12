@@ -3,6 +3,7 @@ alter table public.invitees drop constraint invitees_kind_relationship;
 update public.invitees
 set
   invitee_type = 'unnamed_extra',
+  legacy_display_name = coalesce(nullif(trim(display_name), ''), nullif(trim(companion_label), '')),
   display_name = null,
   companion_of_invitee_id = null,
   companion_label = null,
@@ -13,7 +14,6 @@ alter table public.invitees
   add constraint invitees_kind_relationship
   check (
     (invitee_type = 'named_guest'
-      and nullif(trim(display_name), '') is not null
       and companion_of_invitee_id is null)
     or (invitee_type = 'unnamed_extra'
       and display_name is null

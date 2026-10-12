@@ -3,6 +3,9 @@ alter type public.invitee_kind add value if not exists 'unnamed_extra';
 alter table public.events
   add column purge_after timestamptz;
 
+alter table public.invitees
+  add column legacy_display_name text;
+
 alter table public.events
   add constraint events_trash_retention
   check (
