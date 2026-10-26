@@ -97,7 +97,7 @@ export async function getEventDetail(eventId: string): Promise<EventDetail> {
       )
       .eq('event_id', eventId)
       .is('retired_at', null)
-      .order('starts_at'),
+      .order('display_order'),
     supabase
       .from('event_schedule_items')
       .select(
@@ -105,7 +105,7 @@ export async function getEventDetail(eventId: string): Promise<EventDetail> {
       )
       .eq('event_id', eventId)
       .is('removed_at', null)
-      .order('display_order'),
+      .order('starts_at'),
     supabase.rpc('event_capacity_summary', { p_event_id: eventId }),
     supabase.rpc('get_event_delivery_state', { p_event_id: eventId }),
   ]);
