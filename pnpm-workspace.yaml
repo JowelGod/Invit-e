@@ -1,7 +1,7 @@
 packages:
   - .
 
-# OneDrive no conserva de forma fiable algunos enlaces del layout virtual en Windows.
+# Layout conservado para reproducibilidad; instalar siempre desde Linux en WSL.
 nodeLinker: hoisted
 packageImportMethod: copy
 confirmModulesPurge: false
@@ -13,3 +13,6 @@ minimumReleaseAgeExclude:
   - '@vitest/mocker@5.0.1'
   - '@vitest/spy@5.0.1'
   - vitest@5.0.1
+
+# Fail with an actionable error instead of implicitly installing on run/exec.
+verifyDepsBeforeRun: error

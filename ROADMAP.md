@@ -6,7 +6,8 @@
 - Evento, agenda, grupos, lugares individuales, acompañantes y capacidad derivada.
 - Enlace seguro, RSVP transaccional, historial e idempotencia.
 - Ciclo borrador/publicado/archivado, pruebas unitarias, pgTAP y CI.
-- Migraciones beta aplicadas al proyecto `invitame-development`.
+- Migraciones beta y editor verificadas desde cero en Supabase local.
+- Estado de migraciones Cloud pendiente de auditoría; no se da por confirmado.
 
 ## Completado — Editor foundation
 
@@ -16,6 +17,13 @@
 - Papelera con retención de 30 días, restauración, revocación pública y purga exclusiva auditada.
 - Modo lectura/edición y preview vivo compartido con la invitación pública.
 - Fecha visible `dd/mm/aaaa`, header sticky, menús fuera de flujo y rutas Cuenta/Papelera.
+
+## Consolidación WSL verificada — 26/10/2026
+
+- Copia única en `~/projects/Invitara`, herramientas Linux y Docker Desktop.
+- Consulta del editor corregida sin alterar el esquema.
+- Smoke test local reproducible y pruebas RLS.
+- Véase [estado real](docs/PROJECT_STATUS.md) para resultados y límites.
 
 ## Siguiente fase recomendada — Hardening operativo de la beta
 

@@ -45,7 +45,7 @@ export function RegisterPage() {
     <main className="auth-layout">
       <section className="auth-card" aria-labelledby="register-title">
         <Link className="brand" to="/">
-          Invitame
+          Invitara
         </Link>
         <h1 id="register-title">Crea tu cuenta</h1>
         <p>Al registrarte se crea un espacio personal aislado para tus eventos.</p>

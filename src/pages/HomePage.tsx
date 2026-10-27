@@ -7,7 +7,7 @@ export function HomePage() {
         <p className="eyebrow">Invitaciones digitales y RSVP</p>
         <h1>Organiza lugares y respuestas sin perder el control.</h1>
         <p>
-          Esta versión inicial de Invitame conecta el evento, los grupos invitados y sus
+          Esta versión inicial de Invitara conecta el evento, los grupos invitados y sus
           confirmaciones en un recorrido sencillo.
         </p>
         <div className="button-row">

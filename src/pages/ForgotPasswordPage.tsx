@@ -30,7 +30,7 @@ export function ForgotPasswordPage() {
     <main className="auth-layout">
       <section className="auth-card" aria-labelledby="forgot-title">
         <Link className="brand" to="/">
-          Invitame
+          Invitara
         </Link>
         <h1 id="forgot-title">Recupera tu acceso</h1>
         <form onSubmit={(event) => void handleSubmit(event)}>

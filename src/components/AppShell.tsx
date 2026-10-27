@@ -49,8 +49,8 @@ export function AppShell() {
   return (
     <div className="app-shell">
       <header className="app-header">
-        <Link className="brand" to="/app" aria-label="Invitame, ir al inicio">
-          Invitame
+        <Link className="brand" to="/app" aria-label="Invitara, ir al inicio">
+          Invitara
         </Link>
         <strong className="header-context">{context}</strong>
         <nav aria-label="Navegación principal">

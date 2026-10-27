@@ -1,91 +1,116 @@
-# Invitame
+# Invitara
 
-Base beta del nuevo Invitame: React + Vite en el cliente y Supabase para PostgreSQL, Auth,
-Storage, Realtime y RPC. Incluye línea de tiempo, edición transaccional de invitaciones,
-invitados nominales, boletos extra anónimos, contactos por invitado, RSVP y papelera. El
-prototipo Firebase permanece intacto en `master` y en el tag `eventide-prototype-2025-06-30`.
+Aplicación React/Vite + Supabase (Auth, PostgreSQL, RLS, RPC y Realtime).
+Repositorio: `JowelGod/Invit-e`; el remoto mantiene ese nombre.
+La copia de desarrollo única está en **`~/projects/Invitara` dentro de Ubuntu-24.04/WSL2**.
+El prototipo Firebase permanece en `master` y en el tag histórico.
 
-## Requisitos
+## Inicio desde Windows
 
-- Node.js 22 o posterior y pnpm 11.
-- Docker Desktop en ejecución (necesario para Supabase local y las pruebas RLS).
-- Supabase CLI, instalada como dependencia de desarrollo.
+En **PowerShell**, inicia Docker Desktop y entra en Ubuntu:
 
-Docker sólo es necesario para levantar Supabase completo. Si el equipo no soporta el
-hipervisor, se puede ejecutar Vite contra `invitame-development` con sus credenciales públicas y
-dejar pgTAP a GitHub Actions.
-
-## Puesta en marcha local
-
-```bash
-pnpm install --frozen-lockfile
-pnpm supabase:start
-pnpm exec supabase status -o env
+```powershell
+Start-Process "$env:ProgramFiles\Docker\Docker\Docker Desktop.exe" -WindowStyle Hidden
+wsl -d Ubuntu-24.04
 ```
 
-Copia `.env.example` a `.env.local`. Del resultado anterior usa `API_URL` como
-`VITE_SUPABASE_URL` y `ANON_KEY` como `VITE_SUPABASE_ANON_KEY`. Después ejecuta:
+Espera a que Docker Desktop esté listo. En **Ubuntu**:
 
 ```bash
+cd ~/projects/Invitara
+source ~/.profile
+node --version
+pnpm --version
+docker version
+pnpm supabase:start
+pnpm env:local
 pnpm dev
 ```
 
-- Aplicación: <http://localhost:5173>
-- Supabase Studio: <http://127.0.0.1:54323>
-- Bandeja de correo local: <http://127.0.0.1:54324>
+Abre <http://localhost:5173>. Studio: <http://127.0.0.1:54323>.
+Correo de pruebas: <http://127.0.0.1:54324>. El frontend se ejecuta con Vite en Linux;
+no necesita un contenedor ni otro Docker Engine.
 
-La primera ejecución aplica automáticamente todas las migraciones. Para reconstruir la base
-local:
+## Herramientas e instalación
+
+Comprobado el 26/10/2026: Ubuntu-24.04 en WSL2, Node **24.22.1** Linux,
+pnpm **11.19.0**, Supabase CLI **2.117.0**, Docker cliente/servidor **29.9.2**.
+`package.json` exige Node >=22 y fija pnpm; `.node-version` registra la versión usada.
+Node y pnpm locales viven bajo `~/.local/bin`; esa ruta está al inicio de PATH.
+
+Sólo tras clonar o cambiar dependencias, ejecuta en Ubuntu:
 
 ```bash
-pnpm supabase:reset
+pnpm install --frozen-lockfile
+node -p 'process.platform + " " + process.execPath'
+command -v node pnpm
 ```
+
+El resultado debe ser Linux y rutas bajo `/home/joeel`, nunca `node.exe`, npm o pnpm
+bajo `/mnt/c`. No copies `node_modules` desde Windows. Si pnpm detecta dependencias desalineadas, detiene el
+comando para que ejecutes la instalación anterior explícitamente, sin reinstalaciones implícitas.
+La opción está documentada en [pnpm](https://github.com/pnpm/pnpm/blob/main/pnpm/docs/settings/build.md#verifydepsbeforerun).
+
+La extensión oficial **WSL** (`ms-vscode-remote.remote-wsl`, versión 1.104.6) ya está instalada
+en VS Code para Windows. Ejecuta en Ubuntu:
+
+```bash
+cd ~/projects/Invitara
+code .
+```
+
+Comprueba que la esquina inferior izquierda indique **WSL: Ubuntu-24.04** y que la terminal
+abra `/home/joeel/projects/Invitara`. La instalación del servidor VS Code puede tardar la primera vez.
+
+## Local y Cloud
+
+El cliente usa exactamente:
+
+- `VITE_SUPABASE_URL`: URL de la instancia elegida.
+- `VITE_SUPABASE_ANON_KEY`: clave pública `anon` de esa misma instancia.
+- `VITE_APP_URL`: opcional; por defecto usa el origen del navegador para los enlaces.
+
+`VITE_SUPABASE_PUBLISHABLE_KEY` no se lee actualmente. Nunca pongas claves `service_role`,
+`sb_secret_`, tokens de gestión ni contraseñas de base de datos en `VITE_*`.
+
+`pnpm env:local` obtiene sólo URL y anon de la CLI local y escribe `.env.local` con permisos
+privados. Rechaza sobrescribir una configuración no local. No imprime claves y no copia la
+salida completa de `supabase status`.
+
+La pareja pública Cloud recuperada se conserva aparte en `.env.cloud.local` (ignorada por Git).
+Para seleccionarla explícitamente, detén Vite y ejecuta `pnpm dev:cloud`. Para volver a local,
+detén Vite, ejecuta `pnpm env:local` y `pnpm dev`. No uses Cloud para los datos de prueba.
+No ejecutes simultáneamente ambos modos ni mezcles claves y URL. Las variables exportadas
+en el shell tienen prioridad sobre los archivos: elimínalas antes de cambiar de entorno.
+
+Esta consolidación no ejecutó escrituras, migraciones ni resets en Supabase Cloud. Su esquema
+no se ha certificado; los pasos remotos pendientes están en [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md).
 
 ## Comprobaciones
 
+En Ubuntu, desde la raíz:
+
 ```bash
-pnpm format:check
-pnpm lint
-pnpm test
-pnpm build
+pnpm check
+pnpm exec supabase db lint --local
 pnpm test:rls
+pnpm test:local
 ```
 
-`pnpm test:rls` exige que Supabase local esté iniciado. CI ejecuta todas las comprobaciones.
-No uses `supabase db push` para probar cambios: primero publica la rama y espera el job
-`database`, que reconstruye un entorno efímero desde cero.
+`check` incluye formato, lint, Vitest, TypeScript y build: no hace falta repetirlos por separado.
+`test:rls` ejecuta pgTAP con fixtures transaccionales. `test:local` comprueba Auth, recuperación
+por correo local, eventos, consultas reales, enlaces anónimos, edición, RSVP, papelera y
+restauración; crea datos sintéticos nuevos y los deja en la instancia local. Rechaza cualquier
+API distinta de `http://127.0.0.1:54321`. No usa claves administrativas.
 
-## Flujo vertical comprobable
+Para detener: Ctrl+C en Vite y `pnpm supabase:stop`. Los datos locales se conservan.
+**`pnpm supabase:reset` borra datos locales**: no forma parte del inicio ni de estas comprobaciones.
+Pide autorización antes de resetear una instancia que ya tenga datos.
 
-1. Regístrate en `/registro` e inicia sesión.
-2. Crea un evento y define capacidad.
-3. Agrega actividades a la línea de tiempo; se ordenan automáticamente por fecha y hora.
-4. Agrega invitados nominales uno por uno o pega una lista; añade tantos boletos extra como necesites.
-5. Agrega emails o teléfonos opcionales a los invitados nominales. La invitación requiere al
-   menos un canal válido en total.
-6. Guarda una sola vez. La misma transacción persiste invitados, boletos, orden y contactos,
-   y crea automáticamente el primer enlace.
-7. Copia el enlace, ábrelo en una ventana privada y responde.
-8. Edita un nombre y comprueba que el mismo enlace muestra el cambio sin regenerarse.
-9. Usa “Revocar enlace y crear uno nuevo” sólo para invalidar el token anterior.
-10. Realtime actualiza estados, capacidad y porcentaje de respuesta.
-11. Mueve un evento a Papelera, restáuralo o, tras 30 días, elimínalo definitivamente como propietario.
+## Estado y arquitectura
 
-## Migraciones beta
-
-- `202610020001_beta_schema.sql`: agenda, contactos/cupo, tipos de invitado, retiro lógico y
-  ciclo de vida.
-- `202610020002_beta_rpcs.sql`: mutaciones transaccionales, validaciones, payload público y
-  métricas derivadas.
-- `202610100001_beta_ux_fixes.sql`: destinatarios, guardado atómico de grupos, enlace
-  automático, reinicio auditado, fechas futuras y eliminación lógica segura.
-- `202610120001_editor_schema.sql`: boletos extra, contactos por invitado y retención de papelera.
-- `202610120002_editor_rpcs.sql`: guardado transaccional v4, línea de tiempo, papelera,
-  restauración, purga exclusiva y payload público compatible.
-
-Las migraciones se validan desde cero en CI antes de aplicarse a `invitame-development`.
-Producción y Firebase permanecen intactos.
-
-Consulta [PRODUCT.md](./PRODUCT.md), [ARCHITECTURE.md](./ARCHITECTURE.md),
-[DESIGN.md](./DESIGN.md), [DECISIONS.md](./DECISIONS.md) y [ROADMAP.md](./ROADMAP.md).
-El cierre manual del servicio anterior está en [FIREBASE_SHUTDOWN.md](./FIREBASE_SHUTDOWN.md).
+Rama de integración: `integration/invitara-wsl-consolidation-20261026`.
+Consulta [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) para fuentes recuperadas,
+respaldos, verificación y límites; [ARCHITECTURE.md](ARCHITECTURE.md), [PRODUCT.md](PRODUCT.md),
+[DESIGN.md](DESIGN.md), [DECISIONS.md](DECISIONS.md) y [ROADMAP.md](ROADMAP.md) para el modelo.
+El cierre manual del antiguo servicio Firebase está en [FIREBASE_SHUTDOWN.md](FIREBASE_SHUTDOWN.md).

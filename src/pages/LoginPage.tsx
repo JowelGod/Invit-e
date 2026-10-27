@@ -34,7 +34,7 @@ export function LoginPage() {
     <main className="auth-layout">
       <section className="auth-card" aria-labelledby="login-title">
         <Link className="brand" to="/">
-          Invitame
+          Invitara
         </Link>
         <h1 id="login-title">Inicia sesión</h1>
         <p>Administra eventos, lugares y respuestas desde un solo espacio.</p>

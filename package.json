@@ -1,5 +1,5 @@
 {
-  "name": "invitame",
+  "name": "invitara",
   "private": true,
   "version": "0.1.0",
   "type": "module",
@@ -20,7 +20,10 @@
     "check": "prettier --check . && eslint . --max-warnings=0 && vitest run && tsc -b && vite build",
     "supabase:start": "supabase start",
     "supabase:stop": "supabase stop",
-    "supabase:reset": "supabase db reset"
+    "supabase:reset": "supabase db reset",
+    "env:local": "node scripts/use-local-env.mjs",
+    "test:local": "node scripts/smoke-local.mjs",
+    "dev:cloud": "vite --mode cloud"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",

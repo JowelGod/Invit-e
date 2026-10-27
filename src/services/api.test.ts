@@ -18,7 +18,7 @@ afterEach(() => vi.resetAllMocks());
 describe('getEventDetail PostgREST queries', () => {
   it('loads guests in manual order and activities chronologically using their own columns', async () => {
     const urls: URL[] = [];
-    request.mockImplementation(async (input: string) => {
+    request.mockImplementation((input: string) => {
       const url = new URL(input);
       urls.push(url);
       const table = url.pathname.split('/').at(-1);
@@ -31,17 +31,18 @@ describe('getEventDetail PostgREST queries', () => {
         get_event_delivery_state: [],
       };
       if (table === 'invitees' && url.searchParams.get('order')?.includes('starts_at')) {
-        return new Response(
-          JSON.stringify({ message: 'column invitees.starts_at does not exist' }),
-          {
+        return Promise.resolve(
+          new Response(JSON.stringify({ message: 'column invitees.starts_at does not exist' }), {
             status: 400,
             headers: { 'Content-Type': 'application/json' },
-          },
+          }),
         );
       }
-      return new Response(JSON.stringify(rows[table!]), {
-        headers: { 'Content-Type': 'application/json' },
-      });
+      return Promise.resolve(
+        new Response(JSON.stringify(rows[table!]), {
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
     });
 
     const detail = await getEventDetail('event-1');

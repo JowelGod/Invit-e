@@ -97,8 +97,8 @@ hashes, respuestas ni eventos RSVP existentes.
 ## Entornos
 
 - Local completo: Supabase CLI + Docker, Vite y bandeja de correo local.
-- Local sin hipervisor: Vite contra el proyecto de desarrollo remoto; las pruebas SQL se delegan
-  a GitHub Actions.
+- Entorno principal: Ubuntu-24.04/WSL2 en `~/projects/Invitara`, con Docker Desktop integrado.
+- Cloud opcional: `pnpm dev:cloud` selecciona explícitamente `.env.cloud.local`; no se usa para pruebas sintéticas.
 - CI: servicios Supabase efímeros, pgTAP, lint, tests y build.
 - Producción: deliberadamente no configurada en esta fase; requerirá un proyecto Supabase,
   secretos del host y URLs de Auth aprobadas.
@@ -125,3 +125,12 @@ Mover a Papelera establece `deleted_at` y `purge_after`, revoca enlaces y conser
 del evento purgar después del vencimiento, limpia dependencias y conserva una auditoría mínima
 sin PII. La ejecución automática queda preparada pero no programada: deberá invocarse mediante
 un job autenticado de `pg_cron` o una Edge Function programada en el entorno que se elija.
+
+## Corrección del detalle de eventos (26/10/2026)
+
+`getEventDetail` consultaba `invitees` con `order=starts_at`, introducido en `c70c7c4`.
+La tabla no tiene esa columna: los invitados se ordenan por `display_order` y las actividades
+por `event_schedule_items.starts_at`. Se corrigieron ambos ordenamientos, sin migración.
+Los tipos del cliente ya reflejaban estas columnas; son tipos mantenidos manualmente y no una
+prueba del esquema Cloud. PostgreSQL local y una regresión del constructor PostgREST confirman
+la causa. Una consulta directa reprodujo el error y las consultas corregidas pasaron.

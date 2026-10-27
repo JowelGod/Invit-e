@@ -31,7 +31,7 @@ export function ResetPasswordPage() {
     <main className="auth-layout">
       <section className="auth-card" aria-labelledby="reset-title">
         <Link className="brand" to="/">
-          Invitame
+          Invitara
         </Link>
         <h1 id="reset-title">Define una contraseña nueva</h1>
         <form onSubmit={(event) => void handleSubmit(event)}>
