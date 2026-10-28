@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -54,6 +54,31 @@ describe('formulario de invitados y contactos', () => {
     await user.click(screen.getByRole('button', { name: 'Guardar invitación' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('RPC falló');
     expect(onSubmit).toHaveBeenCalledOnce();
+    expect(screen.getByLabelText('Título de la invitación')).toHaveValue('Individual');
+    expect(screen.getByLabelText('Email de Maya')).toHaveValue('maya@example.test');
+  });
+
+  it('señala contactos al salir, conserva datos al contraer y limita teléfonos', async () => {
+    const user = userEvent.setup();
+    render(<GuestPartyForm busy={false} submitLabel="Guardar invitación" onSubmit={vi.fn()} />);
+    await user.type(screen.getByLabelText(/Invitado 1/), 'Maya');
+    await user.click(screen.getByRole('button', { name: '+ Email' }));
+    await user.type(screen.getByLabelText('Email de Maya'), 'incorrecto');
+    await user.click(screen.getByRole('button', { name: '+ Teléfono' }));
+    expect(screen.getByText('Escribe un correo válido.')).toBeInTheDocument();
+    await user.type(screen.getByLabelText('Teléfono de Maya'), '123');
+    await user.click(screen.getByRole('button', { name: 'Agregar invitado' }));
+    expect(screen.getByText('Escribe un teléfono válido (7 a 15 dígitos).')).toBeInTheDocument();
+    expect(screen.getByText('Revisar datos')).toBeInTheDocument();
+    await user.click(screen.getByText('Maya', { selector: 'summary strong' }));
+    await user.clear(screen.getByLabelText('Email de Maya'));
+    await user.type(screen.getByLabelText('Email de Maya'), 'maya@example.test');
+    await user.clear(screen.getByLabelText('Teléfono de Maya'));
+    await user.type(screen.getByLabelText('Teléfono de Maya'), '+52 55 1234 5678');
+    expect(screen.queryByText('Revisar datos')).not.toBeInTheDocument();
+    const mayaCard = screen.getByText('Maya', { selector: 'summary strong' }).closest('article')!;
+    await user.click(within(mayaCard).getByRole('button', { name: '+ Teléfono' }));
+    expect(within(mayaCard).getByRole('button', { name: '+ Teléfono' })).toBeDisabled();
   });
 
   it('actualiza la vista previa con el borrador todavía no guardado', async () => {

@@ -180,7 +180,7 @@ reset role;
 set local role postgres;
 
 select is(
-  (select count(*)::integer from public.rsvp_events),
+  (select count(*)::integer from public.rsvp_events where guest_party_id = (select party_a from test_state)),
   1,
   'la idempotencia conserva un solo evento append-only'
 );

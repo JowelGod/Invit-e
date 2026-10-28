@@ -69,7 +69,7 @@ export function serializeDraftInvitees(invitees: DraftInvitee[]) {
 
 export function parsePastedNames(value: string): DraftInvitee[] {
   return value
-    .split(/[\n,;]+/)
+    .split(/\r?\n/)
     .map((name) => name.trim())
     .filter(Boolean)
     .map((name) => createDraftInvitee(name));
@@ -91,6 +91,13 @@ export function validatePartyDraft(title: string, invitees: DraftInvitee[]): str
   }
   if (invitees.some((invitee) => invitee.type === 'named_guest' && !invitee.name.trim())) {
     return 'Todos los invitados nominales necesitan nombre.';
+  }
+  if (
+    invitees.some(
+      (invitee) => invitee.contacts.filter((contact) => contact.kind === 'phone').length > 2,
+    )
+  ) {
+    return 'Cada invitado admite como máximo dos teléfonos.';
   }
   const contacts = invitees
     .filter((invitee) => invitee.type === 'named_guest')

@@ -964,3 +964,83 @@ small {
     max-width: calc(100vw - 2rem);
   }
 }
+
+.saved-parties > summary {
+  cursor: pointer;
+  font-weight: 700;
+  margin-block: var(--space-4);
+}
+.saved-parties .party-list {
+  max-height: min(38rem, 70vh);
+  overflow-y: auto;
+  padding-inline: var(--space-2);
+}
+.person-row > label {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+.person-row > label input {
+  width: 100%;
+}
+@media (min-width: 1000px) {
+  .party-editor-layout:has(.editor-preview) {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  }
+  .party-editor-layout .editor-preview {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .party-editor-layout .party-form {
+    grid-column: 2;
+    grid-row: 1;
+  }
+}
+
+.person-fields {
+  grid-column: 1 / -1;
+  min-width: 0;
+}
+.person-fields > summary {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  cursor: pointer;
+}
+.person-fields > summary small {
+  color: var(--color-muted);
+}
+.person-fields > label {
+  display: block;
+  margin-block: var(--space-3);
+}
+.person-fields > label input {
+  width: 100%;
+}
+.person-fields .invitee-contacts {
+  padding-inline-start: 0;
+}
+
+.event-create-layout {
+  display: grid;
+  gap: var(--space-5);
+}
+.event-create-layout .editor-preview {
+  order: 2;
+}
+.event-create-layout .panel-form {
+  order: 1;
+}
+@media (min-width: 1000px) {
+  .event-create-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+  }
+  .event-create-layout .editor-preview {
+    order: 1;
+    position: sticky;
+    top: 5rem;
+  }
+  .event-create-layout .panel-form {
+    order: 2;
+  }
+}

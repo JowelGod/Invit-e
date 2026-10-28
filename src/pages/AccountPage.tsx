@@ -22,6 +22,7 @@ export function AccountPage() {
           <dd>{user?.email || 'No disponible'}</dd>
         </div>
       </dl>
+      <Link to="/restablecer">Cambiar contraseña</Link>
       <p className="form-hint">La información se muestra sólo dentro de esta página protegida.</p>
     </section>
   );

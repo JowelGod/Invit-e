@@ -1,5 +1,52 @@
 # Estado verificado de Invitara
 
+## Actualización del 28/10/2026: eventos e invitaciones
+
+Rama: `fix/invitation-event-flow-20261028`, creada sobre la integración anterior. Respaldo
+recuperable previo: `/home/joeel/invitara-recovery/2026-10-28-before-flow.bundle`. Las copias
+originales de Windows permanecen intactas. La carpeta de trabajo sigue siendo
+`/home/joeel/projects/Invitara` dentro de WSL.
+
+El bloqueo reportado al crear una segunda invitación correspondía al formulario que conservaba
+su estado y un enlace recién generado bajo el panel de creación. Ahora cada guardado
+correcto remonta un borrador vacío y añade la tarjeta guardada; los enlaces se asocian por ID de
+grupo y se actualizan también tras regenerarlos. En una misma página se crearon tres invitaciones
+consecutivas, se comprobaron invitados y enlaces distintos en sus tarjetas, se editó una y se
+creó una cuarta sin recargar. Los fallos de guardado mantienen el borrador. La limitación de
+recuperación de tokens (sólo hash en la base) se explica en cada tarjeta.
+
+El formulario señala correos y teléfonos tras salir del campo, mantiene los avisos al contraer
+tarjetas y enfoca el primer error al intentar guardar. Admite dos teléfonos opcionales por persona;
+la migración local `202610280001_limit_invitee_phones.sql` añade un trigger que rechaza el tercero
+sin alterar registros existentes. La importación pega una persona por línea. Se simplificó la
+creación de eventos retirando sólo el campo visible Lugar; las columnas y lugares de actividades
+anteriores permanecen. Fecha y hora son campos separados; la fecha añade separadores y el valor
+se guarda como hora local, sin desplazar el día. La vista previa de evento y de invitación usa el
+renderizador actual con borradores locales. Las tarjetas guardadas están en un panel plegable y
+con altura limitada.
+
+Se añadió confirmación de contraseña al flujo compartido de cambio y recuperación, con cierre
+de sesión y vuelta al login tras éxito. No se deshabilitó el pegado ni los gestores. Se retiraron
+la configuración y el documento operativo restantes del backend histórico; Supabase es el único
+backend activo. La caché local histórica se respaldó en
+`/home/joeel/invitara-recovery/2026-10-28-firebase-cache.tar.gz` antes de retirarla. El historial
+anterior sigue disponible en Git.
+
+Verificación: `pnpm check` aprobó 26 pruebas Vitest, lint, TypeScript y build; SQL lint local
+aprobado; `pnpm test:rls` aprobó 103 casos; `pnpm test:local` aprobó Auth, recuperación, eventos,
+enlaces, RSVP y papelera con datos sintéticos. En navegador se comprobó la creación seguida,
+edición, aislamiento de enlaces, errores por campo, foco, tarjetas plegables, fecha y vista previa
+sin guardar. El navegador integrado no ofreció cambio de tamaño para comprobar el punto de corte
+móvil; las reglas responsive se revisaron en CSS y esa comprobación visual sigue pendiente.
+El cambio de contraseña mediante enlace se comprobó por API local y pruebas de interfaz
+automatizadas, no completando la contraseña en el navegador integrado.
+
+La migración del límite de teléfonos sólo se aplicó a Supabase local. Antes de promover esta rama
+a un entorno remoto, revisar el esquema Cloud de sólo lectura, probarla en staging y planificar
+su aplicación allí por separado. No se hizo ninguna escritura, reset ni cambio de esquema Cloud.
+La siguiente tarea de producto es implementar el primer paso de elección de plantilla real dentro
+del recorrido documentado, sin duplicar `InvitationTemplate`.
+
 Revisión iniciada: 26/10/2026. Validación final: 27/10/2026. Remoto único: `https://github.com/JowelGod/Invit-e.git`.
 Rama: `integration/invitara-wsl-consolidation-20261026`. Base: `0ada240`.
 

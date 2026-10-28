@@ -5,6 +5,7 @@ import {
   createDraftExtra,
   createDraftInvitee,
   moveDraftInvitee,
+  parsePastedNames,
   reorderDraftInvitees,
   serializeDraftInvitees,
   validatePartyDraft,
@@ -73,5 +74,25 @@ describe('borrador de invitación', () => {
       draft[2].key,
     ]);
     expect(validatePartyDraft('Amigos', [{ ...maya, contacts: [] }])).toMatch(/correo o teléfono/);
+  });
+
+  it('limita teléfonos sin exigir uno y preserva los datos de registros anteriores', () => {
+    const maya = createDraftInvitee('Maya');
+    maya.contacts = [
+      { id: 'email', kind: 'email', value: 'maya@example.test' },
+      { id: 'one', kind: 'phone', value: '+52 55 1234 5678' },
+      { id: 'two', kind: 'phone', value: '+52 55 8765 4321' },
+    ];
+    expect(validatePartyDraft('Amigos', [maya])).toBeNull();
+    maya.contacts.push({ id: 'three', kind: 'phone', value: '+52 55 1111 2222' });
+    expect(validatePartyDraft('Amigos', [maya])).toMatch(/máximo dos teléfonos/);
+    expect(serializeDraftInvitees([maya])[0].contacts).toHaveLength(4);
+  });
+
+  it('pega una persona por línea sin dividir nombres con guiones o barras', () => {
+    expect(parsePastedNames('  Ana-Luz / Ruiz  \n\n Beto\tDos \r\n')).toMatchObject([
+      { name: 'Ana-Luz / Ruiz' },
+      { name: 'Beto\tDos' },
+    ]);
   });
 });

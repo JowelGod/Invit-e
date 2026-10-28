@@ -9,8 +9,10 @@ import { StatusBadge } from './StatusBadge';
 interface Props {
   eventId: string;
   party: GuestPartyRecord;
+  sessionLink?: string;
   disabled: boolean;
   onChanged: () => Promise<void>;
+  onLinkChanged?: (link: string) => void;
   onError: (message: string) => void;
   onSuccess: (message: string) => void;
   eventPreview: { title: string; timezone: string; schedule: PublicScheduleItem[] };
@@ -19,15 +21,17 @@ interface Props {
 export function PartyCard({
   eventId,
   party,
+  sessionLink,
   disabled,
   onChanged,
+  onLinkChanged,
   onError,
   onSuccess,
   eventPreview,
 }: Props) {
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [generatedLink, setGeneratedLink] = useState('');
+  const [generatedLink, setGeneratedLink] = useState(sessionLink || '');
   const [copied, setCopied] = useState(false);
 
   async function save(value: PartyFormValue) {
@@ -38,7 +42,10 @@ export function PartyCard({
         partyId: party.id,
         ...value,
       });
-      if (result.link) setGeneratedLink(result.link);
+      if (result.link) {
+        setGeneratedLink(result.link);
+        onLinkChanged?.(result.link);
+      }
       await onChanged();
       setEditing(false);
       onSuccess('Cambios guardados en la base de datos.');
@@ -60,6 +67,7 @@ export function PartyCard({
     try {
       const link = await generateInvitationLink(party.id);
       setGeneratedLink(link);
+      onLinkChanged?.(link);
       setCopied(false);
       onSuccess('El enlace anterior fue revocado y se creó uno nuevo.');
     } catch (caught) {
@@ -196,6 +204,12 @@ export function PartyCard({
           <p>
             Estado del enlace: <strong>{party.has_active_link ? 'activo' : 'sin enlace'}</strong>.
           </p>
+          {!generatedLink && party.has_active_link && (
+            <p className="form-hint">
+              El enlace original no puede recuperarse: solo se guarda su hash. Si lo perdiste,
+              revócalo y crea uno nuevo.
+            </p>
+          )}
           {generatedLink && (
             <div className="generated-link" role="status">
               <label htmlFor={'link-' + party.id}>Enlace nuevo</label>

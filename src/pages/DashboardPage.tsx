@@ -81,7 +81,7 @@ export function DashboardPage() {
                 <Link to={`/app/eventos/${event.id}`}>{event.title}</Link>
               </h2>
               <p>
-                {event.location_name || 'Ubicación por definir'} ·{' '}
+                {event.location_name || 'Consulta la dirección en la agenda'} ·{' '}
                 {event.status === 'published'
                   ? 'Publicado'
                   : event.status === 'archived'

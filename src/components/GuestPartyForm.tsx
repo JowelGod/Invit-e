@@ -1,9 +1,11 @@
-import { useMemo, useState, type DragEvent, type FormEvent } from 'react';
+import { useMemo, useRef, useState, type DragEvent, type FormEvent } from 'react';
 
 import {
   createDraftContact,
   createDraftExtra,
   createDraftInvitee,
+  isValidEmail,
+  isValidPhone,
   moveDraftInvitee,
   reorderDraftInvitees,
   parsePastedNames,
@@ -46,6 +48,23 @@ export function GuestPartyForm({
   const [error, setError] = useState('');
   const [mobilePanel, setMobilePanel] = useState<'edit' | 'preview'>('edit');
   const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
+  const [expandedKey, setExpandedKey] = useState(initialInvitees[0]?.key || '');
+  const [touchedContacts, setTouchedContacts] = useState<Record<string, boolean>>({});
+  const [attempted, setAttempted] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  function hasInviteeError(invitee: DraftInvitee): boolean {
+    return (
+      (attempted && !invitee.name.trim()) ||
+      invitee.contacts.filter((contact) => contact.kind === 'phone').length > 2 ||
+      invitee.contacts.some(
+        (contact) =>
+          touchedContacts[contact.id] &&
+          Boolean(contact.value.trim()) &&
+          (contact.kind === 'email' ? !isValidEmail(contact.value) : !isValidPhone(contact.value)),
+      )
+    );
+  }
 
   function updateInvitee(index: number, patch: Partial<DraftInvitee>) {
     setInvitees((current) =>
@@ -56,6 +75,11 @@ export function GuestPartyForm({
   }
 
   function addContact(index: number, kind: DraftContactKind) {
+    if (
+      kind === 'phone' &&
+      invitees[index].contacts.filter((contact) => contact.kind === 'phone').length >= 2
+    )
+      return;
     setInvitees((current) =>
       current.map((invitee, inviteeIndex) =>
         inviteeIndex === index
@@ -107,7 +131,59 @@ export function GuestPartyForm({
     event.preventDefault();
     const validation = validatePartyDraft(name, invitees);
     if (validation) {
-      setError(validation);
+      setAttempted(true);
+      const fieldErrors = invitees.flatMap((person, index) => [
+        ...(!person.name.trim() && person.type === 'named_guest'
+          ? [`invitado ${index + 1}: nombre`]
+          : []),
+        ...person.contacts
+          .filter(
+            (contact) =>
+              contact.value.trim() &&
+              (contact.kind === 'email'
+                ? !isValidEmail(contact.value)
+                : !isValidPhone(contact.value)),
+          )
+          .map(
+            (contact) =>
+              `invitado ${index + 1}: ${contact.kind === 'email' ? 'correo' : 'teléfono'}`,
+          ),
+        ...(person.contacts.filter((contact) => contact.kind === 'phone').length > 2
+          ? [`invitado ${index + 1}: demasiados teléfonos`]
+          : []),
+      ]);
+      setError(
+        fieldErrors.length > 1 ? `${validation} Revisa ${fieldErrors.join('; ')}.` : validation,
+      );
+      setTouchedContacts(
+        Object.fromEntries(
+          invitees.flatMap((person) => person.contacts.map((contact) => [contact.id, true])),
+        ),
+      );
+      const invalid = invitees.find(
+        (person) =>
+          person.type === 'named_guest' &&
+          (!person.name.trim() ||
+            person.contacts.some(
+              (contact) =>
+                contact.value.trim() &&
+                (contact.kind === 'email'
+                  ? !isValidEmail(contact.value)
+                  : !isValidPhone(contact.value)),
+            ) ||
+            person.contacts.filter((contact) => contact.kind === 'phone').length > 2),
+      );
+      if (invalid) setExpandedKey(invalid.key);
+      requestAnimationFrame(() => {
+        const input = !name.trim()
+          ? formRef.current?.querySelector<HTMLInputElement>('input[required]')
+          : invalid
+            ? formRef.current?.querySelector<HTMLInputElement>(
+                `[data-person-key="${invalid.key}"] input:invalid, [data-person-key="${invalid.key}"] input[aria-invalid="true"]`,
+              )
+            : formRef.current?.querySelector<HTMLInputElement>('input[required]');
+        input?.focus();
+      });
       return;
     }
     setError('');
@@ -153,6 +229,8 @@ export function GuestPartyForm({
       )}
       <div className="party-editor-layout">
         <form
+          ref={formRef}
+          noValidate
           className={`stack-form party-form ${mobilePanel === 'preview' ? 'mobile-hidden' : ''}`}
           onSubmit={(event) => void submit(event)}
         >
@@ -195,10 +273,15 @@ export function GuestPartyForm({
                 Un nombre por línea
                 <textarea
                   rows={6}
+                  placeholder={'Ana García\nLuis Pérez'}
                   value={pastedNames}
                   onChange={(event) => setPastedNames(event.target.value)}
                 />
               </label>
+              <p className="form-hint">
+                Cada línea no vacía crea un invitado. Se quitan espacios al principio y al final;
+                guiones y barras pertenecen al nombre.
+              </p>
               <button className="button--secondary" type="button" onClick={applyList}>
                 Usar esta lista
               </button>
@@ -209,6 +292,7 @@ export function GuestPartyForm({
                 <article
                   className={`person-row ${draggingIndex === index ? 'is-dragging' : ''}`}
                   key={invitee.key}
+                  data-person-key={invitee.key}
                   draggable={invitees.length > 1}
                   onDragStart={(event: DragEvent<HTMLElement>) => {
                     event.dataTransfer.effectAllowed = 'move';
@@ -232,7 +316,28 @@ export function GuestPartyForm({
                     </span>
                   )}
                   {invitee.type === 'named_guest' ? (
-                    <>
+                    <details
+                      className="person-fields"
+                      open={expandedKey === invitee.key}
+                      onToggle={(event) => {
+                        if (event.currentTarget.open) setExpandedKey(invitee.key);
+                      }}
+                    >
+                      <summary
+                        onClick={(event) => {
+                          event.preventDefault();
+                          setExpandedKey(expandedKey === invitee.key ? '' : invitee.key);
+                        }}
+                      >
+                        <strong>{invitee.name.trim() || `Invitado ${index + 1}`}</strong>
+                        <small>
+                          {invitee.contacts.filter((contact) => contact.value.trim()).length}{' '}
+                          contactos
+                        </small>
+                        {hasInviteeError(invitee) && (
+                          <span className="field-error">Revisar datos</span>
+                        )}
+                      </summary>
                       <label>
                         Invitado{' '}
                         {
@@ -242,10 +347,14 @@ export function GuestPartyForm({
                         <input
                           value={invitee.name}
                           required
+                          aria-invalid={attempted && !invitee.name.trim()}
                           maxLength={120}
                           placeholder="Nombre"
                           onChange={(event) => updateInvitee(index, { name: event.target.value })}
                         />
+                        {attempted && !invitee.name.trim() && (
+                          <small className="field-error">Escribe el nombre del invitado.</small>
+                        )}
                       </label>
                       <div className="invitee-contacts">
                         {invitee.contacts.map((contact) => (
@@ -257,10 +366,34 @@ export function GuestPartyForm({
                                 type={contact.kind === 'email' ? 'email' : 'tel'}
                                 value={contact.value}
                                 maxLength={254}
+                                aria-invalid={Boolean(
+                                  touchedContacts[contact.id] &&
+                                  contact.value.trim() &&
+                                  (contact.kind === 'email'
+                                    ? !isValidEmail(contact.value)
+                                    : !isValidPhone(contact.value)),
+                                )}
+                                onBlur={() =>
+                                  setTouchedContacts((current) => ({
+                                    ...current,
+                                    [contact.id]: true,
+                                  }))
+                                }
                                 onChange={(event) =>
                                   updateContact(index, contact.id, event.target.value)
                                 }
                               />
+                              {touchedContacts[contact.id] &&
+                                contact.value.trim() &&
+                                (contact.kind === 'email'
+                                  ? !isValidEmail(contact.value)
+                                  : !isValidPhone(contact.value)) && (
+                                  <small className="field-error">
+                                    {contact.kind === 'email'
+                                      ? 'Escribe un correo válido.'
+                                      : 'Escribe un teléfono válido (7 a 15 dígitos).'}
+                                  </small>
+                                )}
                             </label>
                             <button
                               className="text-button danger-text"
@@ -283,12 +416,19 @@ export function GuestPartyForm({
                             className="button--secondary"
                             type="button"
                             onClick={() => addContact(index, 'phone')}
+                            disabled={
+                              invitee.contacts.filter((contact) => contact.kind === 'phone')
+                                .length >= 2
+                            }
                           >
                             + Teléfono
                           </button>
                         </div>
+                        <small className="form-hint">
+                          Máximo dos teléfonos por persona; son opcionales.
+                        </small>
                       </div>
-                    </>
+                    </details>
                   ) : (
                     <div className="extra-ticket-label">
                       <strong>Invitado adicional {extraLabels[index]}</strong>
@@ -341,7 +481,11 @@ export function GuestPartyForm({
                 <button
                   className="button--secondary"
                   type="button"
-                  onClick={() => setInvitees((current) => [...current, createDraftInvitee()])}
+                  onClick={() => {
+                    const next = createDraftInvitee();
+                    setInvitees((current) => [...current, next]);
+                    setExpandedKey(next.key);
+                  }}
                 >
                   Agregar invitado
                 </button>

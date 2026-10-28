@@ -30,8 +30,8 @@ export function EventDetailPage() {
   const [busy, setBusy] = useState(false);
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<PartyFilter>('all');
-  const [newLink, setNewLink] = useState('');
-  const [copied, setCopied] = useState(false);
+  const [sessionLinks, setSessionLinks] = useState<Record<string, string>>({});
+  const [newPartyVersion, setNewPartyVersion] = useState(0);
   const [previewTitle, setPreviewTitle] = useState('');
   const [previewSchedule, setPreviewSchedule] = useState<EventDetail['schedule']>([]);
 
@@ -106,10 +106,15 @@ export function EventDetailPage() {
     setMessage('');
     try {
       const result = await saveGuestParty({ eventId, partyId: null, ...value });
-      setNewLink(result.link || '');
-      setCopied(false);
-      await load();
+      if (result.link)
+        setSessionLinks((current) => ({ ...current, [result.partyId]: result.link! }));
+      setNewPartyVersion((version) => version + 1);
       setMessage('Grupo guardado y enlace seguro creado.');
+      try {
+        await load();
+      } catch {
+        setMessage('Grupo guardado. No se actualizó el listado; vuelve a cargar la página.');
+      }
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : 'No fue posible crear el grupo.');
     } finally {
@@ -185,8 +190,10 @@ export function EventDetailPage() {
             {formatDateTime(detail.event.starts_at, detail.event.timezone)}
           </p>
           <p>
-            {detail.event.location_name || 'Ubicación por definir'} · Estado:{' '}
-            {statusLabel(detail.event.status)}
+            {detail.event.location_name ||
+              detail.schedule.find((item) => item.address)?.address ||
+              'Ubicación por definir'}{' '}
+            · Estado: {statusLabel(detail.event.status)}
           </p>
         </div>
         {!archived && (
@@ -297,6 +304,7 @@ export function EventDetailPage() {
             <details className="new-party-panel">
               <summary>Agregar invitados</summary>
               <GuestPartyForm
+                key={newPartyVersion}
                 busy={busy}
                 submitLabel="Guardar invitación"
                 onSubmit={handleCreateParty}
@@ -306,27 +314,6 @@ export function EventDetailPage() {
                   schedule: previewSchedule,
                 }}
               />
-              {newLink && (
-                <div className="generated-link" role="status">
-                  <label htmlFor="new-party-link">Enlace creado</label>
-                  <div className="copy-field">
-                    <input id="new-party-link" readOnly value={newLink} />
-                    <button
-                      className="button--secondary"
-                      type="button"
-                      onClick={() => {
-                        void navigator.clipboard.writeText(newLink);
-                        setCopied(true);
-                      }}
-                    >
-                      Copiar
-                    </button>
-                  </div>
-                  <small aria-live="polite">
-                    {copied ? 'Enlace copiado.' : 'Disponible en esta sesión.'}
-                  </small>
-                </div>
-              )}
             </details>
           )}
 
@@ -356,24 +343,31 @@ export function EventDetailPage() {
           {visibleParties.length === 0 && (
             <p className="empty-copy">No hay grupos que coincidan con los filtros.</p>
           )}
-          <div className="party-list">
-            {visibleParties.map((party) => (
-              <PartyCard
-                key={party.id}
-                eventId={eventId}
-                party={party}
-                disabled={archived}
-                onChanged={load}
-                onError={setError}
-                onSuccess={setMessage}
-                eventPreview={{
-                  title: previewTitle || detail.event.title,
-                  timezone: detail.event.timezone,
-                  schedule: previewSchedule,
-                }}
-              />
-            ))}
-          </div>
+          <details className="saved-parties" open>
+            <summary>Invitaciones guardadas ({visibleParties.length})</summary>
+            <div className="party-list">
+              {visibleParties.map((party) => (
+                <PartyCard
+                  key={party.id}
+                  eventId={eventId}
+                  party={party}
+                  sessionLink={sessionLinks[party.id]}
+                  disabled={archived}
+                  onChanged={load}
+                  onLinkChanged={(link) =>
+                    setSessionLinks((current) => ({ ...current, [party.id]: link }))
+                  }
+                  onError={setError}
+                  onSuccess={setMessage}
+                  eventPreview={{
+                    title: previewTitle || detail.event.title,
+                    timezone: detail.event.timezone,
+                    schedule: previewSchedule,
+                  }}
+                />
+              ))}
+            </div>
+          </details>
         </section>
       </div>
     </section>

@@ -10,6 +10,7 @@ export function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const [error, setError] = useState('');
+  const success = (location.state as { message?: string } | null)?.message || '';
   const [busy, setBusy] = useState(false);
 
   if (user) return <Navigate to="/app" replace />;
@@ -49,7 +50,7 @@ export function LoginPage() {
             autoComplete="current-password"
             required
           />
-          <FormMessage error={error} />
+          <FormMessage error={error} success={success} />
           <button type="submit" disabled={busy}>
             {busy ? 'Entrando…' : 'Entrar'}
           </button>

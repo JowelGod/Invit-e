@@ -9,6 +9,3 @@ supabase/.branches/
 supabase/.temp/
 *.tsbuildinfo
 .DS_Store
-
-# Legacy Firebase build cache
-.firebase/

@@ -4,7 +4,7 @@
 
 **Estado:** aceptada. `master` y `eventide-prototype-2025-06-30` conservan el prototipo. La base
 se construyó en `codex/invitame-rebuild` y la beta en `codex/invitame-beta-foundation`.
-Firebase, datos, media y plantillas no se migran.
+Los datos, media y plantillas del prototipo histórico no se migran; Supabase es el único backend actual.
 
 ## ADR-002 — Un PostgreSQL con JSONB
 

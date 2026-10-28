@@ -58,3 +58,8 @@ export function splitDateTimeLocal(value?: string): { date: string; time: string
   const [year, month, day] = isoDate.split('-');
   return { date: `${day}/${month}/${year}`, time };
 }
+
+export function formatDateInput(value: string): string {
+  const digits = value.replace(/\D/g, '').slice(0, 8);
+  return [digits.slice(0, 2), digits.slice(2, 4), digits.slice(4)].filter(Boolean).join('/');
+}

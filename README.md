@@ -3,7 +3,7 @@
 Aplicación React/Vite + Supabase (Auth, PostgreSQL, RLS, RPC y Realtime).
 Repositorio: `JowelGod/Invit-e`; el remoto mantiene ese nombre.
 La copia de desarrollo única está en **`~/projects/Invitara` dentro de Ubuntu-24.04/WSL2**.
-El prototipo Firebase permanece en `master` y en el tag histórico.
+El código actual usa Supabase como único backend. El historial antiguo permanece en Git.
 
 ## Inicio desde Windows
 
@@ -109,8 +109,42 @@ Pide autorización antes de resetear una instancia que ya tenga datos.
 
 ## Estado y arquitectura
 
-Rama de integración: `integration/invitara-wsl-consolidation-20261026`.
+Rama actual de correcciones: `fix/invitation-event-flow-20261028` (parte de
+`integration/invitara-wsl-consolidation-20261026`).
 Consulta [docs/PROJECT_STATUS.md](docs/PROJECT_STATUS.md) para fuentes recuperadas,
 respaldos, verificación y límites; [ARCHITECTURE.md](ARCHITECTURE.md), [PRODUCT.md](PRODUCT.md),
 [DESIGN.md](DESIGN.md), [DECISIONS.md](DECISIONS.md) y [ROADMAP.md](ROADMAP.md) para el modelo.
-El cierre manual del antiguo servicio Firebase está en [FIREBASE_SHUTDOWN.md](FIREBASE_SHUTDOWN.md).
+
+## Próximo recorrido de plantillas
+
+Elegir plantilla → completar datos → personalizar → invitados y compartir. Actualmente la creación
+comienza en datos esenciales y usa el renderizador `InvitationTemplate` para la vista previa
+general; no hay selector de plantillas aún. La siguiente entrega introducirá esa selección sin
+duplicar el renderizado.
+
+## Invitaciones y edición actual
+
+En el editor del evento, **Agregar invitados** crea una invitación nueva. Tras guardarla, el
+formulario se limpia y su enlace aparece en la tarjeta guardada correspondiente. Cada tarjeta
+permite consultar o editar sus propios invitados y contactos. Los enlaces sólo se conservan
+durante la sesión de la página: la base guarda únicamente un hash. Si cierras la página y
+pierdes un enlace, usa **Revocar enlace y crear uno nuevo** en esa tarjeta; el anterior dejará
+de funcionar. Una edición conserva el enlace activo y no limpia el formulario de creación.
+
+**Pegar una lista** crea un invitado por cada línea no vacía. Se quitan espacios exteriores;
+guiones, barras, comas, punto y coma y tabuladores dentro de una línea permanecen como parte
+del nombre. Cada invitación necesita al menos un contacto válido entre sus invitados, pero
+ninguna persona está obligada a tener teléfono. Se admiten como máximo dos teléfonos por
+persona. El límite también se valida en PostgreSQL desde la migración
+`202610280001_limit_invitee_phones.sql`, aplicada y probada sólo en local. Los registros previos
+con más de dos teléfonos no se borran automáticamente.
+
+La vista previa del evento y la de cada invitación usan `InvitationTemplate` con datos aún no
+guardados. La vista previa general no incluye contactos privados ni crea enlaces. En escritorio
+ancho aparece a la izquierda; en móvil, el formulario precede a la vista previa. El listado de
+invitaciones guardadas puede plegarse y limita su altura con desplazamiento interior.
+
+El cambio de contraseña desde **Cuenta** y el restablecimiento por correo comparten
+`/restablecer`: piden confirmación, permiten pegar y, tras actualizar, cierran la sesión local
+y regresan a **Inicia sesión**. La bandeja de correo local está en
+<http://127.0.0.1:54324>. Ningún correo de estas pruebas se envía fuera de Supabase local.

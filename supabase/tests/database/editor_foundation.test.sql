@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(31);
+select plan(33);
 
 insert into auth.users (
   id, instance_id, aud, role, email, encrypted_password, email_confirmed_at,
@@ -145,6 +145,19 @@ select is(public.get_public_invitation((select token from editor_state)) -> 'pla
   'Maya Actualizada', 'el enlace público existente refleja la edición');
 select is((select value from public.invitee_contacts where kind = 'email'),
   'maya.nueva@example.test', 'el contacto editado persiste al recargar');
+
+reset role;
+select lives_ok(format(
+  'insert into public.invitee_contacts(invitee_id,kind,value,display_order) values (%L::uuid,''phone'',''+52 55 8765 4321'',1)',
+  (select id from public.invitees where public_key = '95000000-0000-4000-8000-000000000009')
+), 'un invitado puede guardar un segundo teléfono');
+select throws_ok(format(
+  'insert into public.invitee_contacts(invitee_id,kind,value,display_order) values (%L::uuid,''phone'',''+52 55 1111 2222'',2)',
+  (select id from public.invitees where public_key = '95000000-0000-4000-8000-000000000009')
+), '23514', 'Cada invitado admite como máximo dos teléfonos',
+  'la base rechaza el tercer teléfono sin borrar los anteriores');
+set local role authenticated;
+select set_config('request.jwt.claim.role', 'authenticated', true);
 
 select set_config('request.jwt.claim.sub', '92000000-0000-4000-8000-000000000009', true);
 select throws_ok(format('select public.get_event_delivery_state(%L::uuid)',

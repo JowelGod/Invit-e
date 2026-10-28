@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { combineDisplayDateTime, splitDateTimeLocal } from '../lib/dates';
+import { combineDisplayDateTime, formatDateInput, splitDateTimeLocal } from '../lib/dates';
 
 interface Props {
   name: string;
@@ -34,10 +34,40 @@ export function DateTimeField({
             pattern="\d{2}/\d{2}/\d{4}"
             value={date}
             required={required}
+            onKeyDown={(event) => {
+              const target = event.currentTarget;
+              if (
+                event.key === 'Backspace' &&
+                target.selectionStart === target.selectionEnd &&
+                target.selectionStart &&
+                target.value[target.selectionStart - 1] === '/'
+              ) {
+                event.preventDefault();
+                const next = formatDateInput(
+                  target.value.slice(0, target.selectionStart - 2) +
+                    target.value.slice(target.selectionStart),
+                );
+                setDate(next);
+                onValueChange?.(combineDisplayDateTime(next, time));
+                const position = Math.max(0, target.selectionStart - 2);
+                requestAnimationFrame(() => target.setSelectionRange(position, position));
+              }
+            }}
             onChange={(event) => {
-              const next = event.target.value;
+              const target = event.target;
+              const cursor = target.selectionStart ?? target.value.length;
+              const digitsBeforeCursor = target.value.slice(0, cursor).replace(/\D/g, '').length;
+              const next = formatDateInput(target.value);
               setDate(next);
               onValueChange?.(combineDisplayDateTime(next, time));
+              let position = 0;
+              let digits = 0;
+              while (position < next.length && digits < digitsBeforeCursor) {
+                if (/\d/.test(next[position])) digits += 1;
+                position += 1;
+              }
+              if (next[position] === '/' && target.value[cursor - 1] === '/') position += 1;
+              requestAnimationFrame(() => target.setSelectionRange(position, position));
             }}
           />
         </label>
@@ -46,6 +76,8 @@ export function DateTimeField({
           <input
             aria-label={`${label}: hora`}
             type="time"
+            step={60}
+            title="HH:MM (24 horas)"
             value={time}
             required={required}
             onChange={(event) => {
@@ -54,6 +86,7 @@ export function DateTimeField({
               onValueChange?.(combineDisplayDateTime(date, next));
             }}
           />
+          <small className="form-hint">HH:MM, formato de 24 horas.</small>
         </label>
       </div>
       <input type="hidden" name={name} value={combined} />
